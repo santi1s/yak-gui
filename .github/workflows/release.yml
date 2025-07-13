@@ -87,14 +87,11 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          # Check what webkit packages are available
-          apt-cache search webkit2gtk
-          # Try to install what's available
-          sudo apt-get install -y libgtk-3-dev || true
-          sudo apt-get install -y libwebkit2gtk-4.0-dev || true  
-          sudo apt-get install -y libwebkit2gtk-4.1-dev || true
-          # Show what was actually installed
-          pkg-config --list-all | grep webkit || echo "No webkit found"
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          # Create symlink for webkit2gtk-4.0 -> webkit2gtk-4.1 compatibility
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+          # Verify the symlink works
+          pkg-config --exists webkit2gtk-4.0 && echo "webkit2gtk-4.0 available" || echo "webkit2gtk-4.0 not found"
 
       - name: Install frontend dependencies
         run: |
