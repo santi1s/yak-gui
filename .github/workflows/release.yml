@@ -96,23 +96,52 @@ jobs:
           cd yak-gui
           wails build --platform ${{ matrix.platform }}
 
+      - name: Debug build output
+        run: |
+          echo "=== Build directory structure ==="
+          find yak-gui -name "*.app" -o -name "yak-gui" -o -name "yak-gui.exe" 2>/dev/null || true
+          echo "=== yak-gui/build contents ==="
+          ls -la yak-gui/build/ 2>/dev/null || echo "build directory not found"
+          echo "=== yak-gui/build/bin contents ==="
+          ls -la yak-gui/build/bin/ 2>/dev/null || echo "bin directory not found"
+
       - name: Create GUI Archives (macOS)
         if: matrix.name == 'darwin'
         run: |
-          cd yak-gui/build/bin
-          tar -czf ../../../yak-gui-darwin-universal.tar.gz yak-gui.app
+          cd yak-gui
+          if [ -f "build/bin/yak-gui.app/Contents/MacOS/yak-gui" ]; then
+            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui.app
+          elif [ -d "build/bin/yak-gui.app" ]; then
+            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui.app
+          elif [ -f "build/bin/yak-gui" ]; then
+            # Fallback if .app bundle wasn't created
+            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui
+          else
+            echo "No macOS binary found in expected locations"
+            exit 1
+          fi
 
       - name: Create GUI Archives (Linux)
         if: matrix.name == 'linux'
         run: |
-          cd yak-gui/build/bin
-          tar -czf ../../../yak-gui-linux-amd64.tar.gz yak-gui
+          cd yak-gui
+          if [ -f "build/bin/yak-gui" ]; then
+            tar -czf ../yak-gui-linux-amd64.tar.gz -C build/bin yak-gui
+          else
+            echo "No Linux binary found at build/bin/yak-gui"
+            exit 1
+          fi
 
       - name: Create GUI Archives (Windows)
         if: matrix.name == 'windows'
         run: |
-          cd yak-gui/build/bin
-          Compress-Archive -Path yak-gui.exe -DestinationPath ../../../yak-gui-windows-amd64.zip
+          cd yak-gui
+          if (Test-Path "build/bin/yak-gui.exe") {
+            Compress-Archive -Path "build/bin/yak-gui.exe" -DestinationPath "../yak-gui-windows-amd64.zip"
+          } else {
+            Write-Host "No Windows binary found at build/bin/yak-gui.exe"
+            exit 1
+          }
 
       - name: Upload GUI Artifacts
         uses: actions/upload-artifact@v4
