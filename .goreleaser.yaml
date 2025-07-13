@@ -24,8 +24,6 @@ builds:
 
 archives:
   - id: yak-cli
-    builds: 
-      - yak
     name_template: "yak-{{ .Os }}-{{ .Arch }}"
 
 checksum:
