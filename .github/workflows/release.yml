@@ -109,15 +109,26 @@ jobs:
         if: matrix.name == 'darwin'
         run: |
           cd yak-gui
-          if [ -f "build/bin/yak-gui.app/Contents/MacOS/yak-gui" ]; then
+          # Wails creates separate arch-specific .app bundles, package them together
+          if [ -d "build/bin/yak-gui-amd64.app" ] && [ -d "build/bin/yak-gui-arm64.app" ]; then
+            # Create universal binary by combining both architectures
+            mkdir -p build/bin/yak-gui.app/Contents/MacOS
+            lipo -create \
+              build/bin/yak-gui-amd64.app/Contents/MacOS/yak-gui \
+              build/bin/yak-gui-arm64.app/Contents/MacOS/yak-gui \
+              -output build/bin/yak-gui.app/Contents/MacOS/yak-gui
+            # Copy other resources from one of the apps (they should be identical)
+            cp -r build/bin/yak-gui-amd64.app/Contents/Info.plist build/bin/yak-gui.app/Contents/
+            cp -r build/bin/yak-gui-amd64.app/Contents/Resources build/bin/yak-gui.app/Contents/ 2>/dev/null || true
             tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui.app
-          elif [ -d "build/bin/yak-gui.app" ]; then
-            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui.app
-          elif [ -f "build/bin/yak-gui" ]; then
-            # Fallback if .app bundle wasn't created
-            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui
+          elif [ -d "build/bin/yak-gui-amd64.app" ]; then
+            # Only amd64 build available
+            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui-amd64.app
+          elif [ -d "build/bin/yak-gui-arm64.app" ]; then
+            # Only arm64 build available  
+            tar -czf ../yak-gui-darwin-universal.tar.gz -C build/bin yak-gui-arm64.app
           else
-            echo "No macOS binary found in expected locations"
+            echo "No macOS .app bundles found"
             exit 1
           fi
 
