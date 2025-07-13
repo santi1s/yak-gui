@@ -1,0 +1,74 @@
+version: 2
+project_name: terraform-provider-yak
+monorepo:
+  tag_prefix: provider/v
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: main
+    main: ./cmd/terraform-provider-yak
+    binary: '{{ .ProjectName }}'
+    ldflags:
+      - -s -w
+      - -X 'github.com/doctolib/yak/internal/constant.Version={{.Summary}}'
+      - -X 'github.com/doctolib/yak/internal/constant.VersionControl=194307d98c7e1125325f4dc10d21747920849a4c47d629d901d37af65b0ae5f4'
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - id: main
+    format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - nonexistingfileasemptyarraydoesnotworktodisabledefaultvalue*
+    wrap_in_directory: false
+    strip_binary_directory: true
+    builds:
+      - main
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--yes"
+      - "--passphrase"
+      - "{{ .Env.GPG_PASSPHRASE }}"
+      - "--pinentry-mode"
+      - "loopback"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+snapshot:
+  name_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  prerelease: auto
+publishers:
+  - name: main
+    env:
+      - TFE_HOSTNAME=tfe.doctolib.net
+      - TFE_NAMESPACE=doctolib
+      - TFE_TOKEN={{ .Env.TFE_TOKEN }}
+      - GPG_KEY_ID=BEFDF88E9F0B92C5
+      - GPG_FINGERPRINT=E9E003B7372F550B61DD9452BEFDF88E9F0B92C5
+      - GPG_PASSPHRASE={{ .Env.GPG_PASSPHRASE }}
+      - BINARY_OS={{ .Os }}
+      - BINARY_ARCH={{ .Arch }}
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: |
+     ../.github/tfe-publish.sh yak '{{ .Version }}'

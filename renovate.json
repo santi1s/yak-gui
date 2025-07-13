@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>doctolib/renovate-config",
+    ":automergeDigest",
+    ":automergeMinor"
+  ],
+  "rebaseWhen": "behind-base-branch",
+  "postUpdateOptions": ["gomodTidy"]
+}

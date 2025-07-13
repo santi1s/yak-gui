@@ -1,0 +1,37 @@
+---
+name: promote ci version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of yak CLI to promote as CI version (example: 1.0.0)'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ROLE_TO_ASSUME: arn:aws:iam::580698825394:role/gha_${{ github.event.repository.name }}_br_all
+  ECR_URI: 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak
+
+jobs:
+  release:
+    runs-on: prod-linux-xs
+    steps:
+      - name: checkout repository
+        uses: doctolib/actions/checkout@429fae9c3fefa82b9a7fc0223edfaecc7234c787 # checkout-v0.1.0
+        with:
+          fetch-depth: 0
+
+      - name: Login on aws ecr
+        uses: doctolib/actions/docker-login@main
+        with:
+          aws_iam_role: ${{ env.ROLE_TO_ASSUME }}
+          aws_iam_region: 'eu-central-1'
+
+      - name: add ci tag on image
+        run: |
+          MANIFEST=$(aws ecr batch-get-image --repository-name yak --image-ids imageTag=${{ inputs.version }} --output json | jq --raw-output --join-output '.images[0].imageManifest')
+          aws ecr put-image --repository-name yak --image-tag ci --image-manifest "$MANIFEST"

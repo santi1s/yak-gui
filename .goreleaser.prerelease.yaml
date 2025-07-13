@@ -1,0 +1,84 @@
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+builds:
+  - id: yak
+    main: ./cmd/yak
+    binary: yak
+    ldflags:
+      - -s -w
+      - -X 'github.com/doctolib/yak/internal/constant.Version={{.Summary}}'
+      - -X 'github.com/doctolib/yak/internal/constant.VersionControl=194307d98c7e1125325f4dc10d21747920849a4c47d629d901d37af65b0ae5f4'
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+  - id: yak-secret
+    main: ./cmd/yak-secret
+    binary: yak-secret
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - id: yak
+    format: binary
+    builds:
+      - yak
+  - id: yak-secret
+    format: binary
+    builds:
+      - yak-secret
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Version }}-SNAPSHOT-{{.ShortCommit}}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  prerelease: auto
+dockers:
+  - image_templates:
+      - 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak:{{ .Version }}-amd64
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: amd64
+    use: buildx
+    build_flag_templates:
+      - "--builder=multiarch"
+      - "--platform=linux/amd64"
+    ids:
+      - yak
+    extra_files:
+      - docker
+  - image_templates:
+      - 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak:{{ .Version }}-arm64
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: arm64
+    use: buildx
+    build_flag_templates:
+      - "--builder=multiarch"
+      - "--platform=linux/arm64"
+    ids:
+      - yak
+    extra_files:
+      - docker
+docker_manifests:
+  - name_template: 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak:{{ .Version }}
+    image_templates:
+      - 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak:{{ .Version }}-amd64
+      - 580698825394.dkr.ecr.eu-central-1.amazonaws.com/yak:{{ .Version }}-arm64

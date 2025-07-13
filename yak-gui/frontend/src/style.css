@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Animation classes */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status indicator styles */
+.status-healthy {
+  @apply bg-green-500 text-white;
+}
+
+.status-progressing {
+  @apply bg-yellow-500 text-white;
+}
+
+.status-degraded {
+  @apply bg-red-500 text-white;
+}
+
+.status-suspended {
+  @apply bg-gray-500 text-white;
+}
+
+.status-missing {
+  @apply bg-orange-500 text-white;
+}
+
+.status-unknown {
+  @apply bg-gray-400 text-white;
+}
+
+.status-synced {
+  @apply bg-green-500 text-white;
+}
+
+.status-outofsync {
+  @apply bg-red-500 text-white;
+}
+
+.sync-loop-critical {
+  @apply bg-red-600 text-white;
+}
+
+.sync-loop-warning {
+  @apply bg-yellow-600 text-white;
+}
+
+.sync-loop-possible {
+  @apply bg-orange-600 text-white;
+}
+
+.sync-loop-failed {
+  @apply bg-red-500 text-white;
+}

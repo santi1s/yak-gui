@@ -1,0 +1,5 @@
+endpoint: tfe.doctolib.net
+
+email:
+  awsProfile: shared-sso
+  awsRegion: eu-central-1

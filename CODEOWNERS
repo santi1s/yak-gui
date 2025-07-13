@@ -1,0 +1,13 @@
+* @doctolib/sre-green
+
+/.github/workflows/ @doctolib/sre-green
+/CODEOWNERS @doctolib/sre-green
+/Dockerfile @doctolib/sre-green @doctolib/deployment
+/go.mod @doctolib/sre-green @doctolib/deployment
+/go.sum @doctolib/sre-green @doctolib/deployment
+
+/internal/cmd/aws/ @doctolib/sre-green @doctolib/platform-security
+/internal/cmd/certificate/ @doctolib/sre-blue @doctolib/sre-green
+/internal/teleport/ @doctolib/sre-green @doctolib/platform-security
+/internal/cmd/helm/ @doctolib/sre-blue @doctolib/sre-green
+/internal/helper/helm/ @doctolib/sre-blue @doctolib/sre-green

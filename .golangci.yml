@@ -1,0 +1,40 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gosec
+    - govet
+    - nilerr
+    - noctx
+    - nonamedreturns
+    - predeclared
+    - revive
+    - staticcheck
+    - whitespace
+  settings:
+    revive:
+      severity: error
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gofmt:
+      simplify: false
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

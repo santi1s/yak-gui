@@ -1,0 +1,168 @@
+package constant
+
+// CLI global constants
+const (
+	CliName              = "yak"
+	GithubOrganization   = "doctolib"
+	GithubRepository     = "yak"
+	DevelopmentVersion   = "devel"
+	VersionCacheFilePath = "/.cache/yak/version_check"
+	EmailDefaultSender   = "team-peer-sre-green@doctolib.com"
+	SSORegion            = "eu-central-1"
+	SSOStartURL          = "https://doctolib.awsapps.com/start"
+	AccountNo            = "269888887942"
+)
+
+// CLI terraform constants
+const (
+	TerraformDefaultVersion = "0.14.11"
+)
+
+// CLI tfe constants
+const (
+	TfeDefaultOrganization = "doctolib"
+)
+
+// Var because they are overriden when releasing
+var (
+	Version                   = DevelopmentVersion
+	VersionControl            = DevelopmentVersion
+	KubeResourceGroupFromKind = map[string]string{
+		"MutatingWebhookConfiguration":     "admissionregistration.k8s.io",
+		"ValidatingWebhookConfiguration":   "admissionregistration.k8s.io",
+		"CustomResourceDefinition":         "apiextensions.k8s.io",
+		"APIService":                       "apiregistration.k8s.io",
+		"ControllerRevision":               "apps",
+		"DaemonSet":                        "apps",
+		"Deployment":                       "apps",
+		"ReplicaSet":                       "apps",
+		"StatefulSet":                      "apps",
+		"Application":                      "argoproj.io",
+		"AppProject":                       "argoproj.io",
+		"TokenReview":                      "authentication.k8s.io",
+		"LocalSubjectAccessReview":         "authorization.k8s.io",
+		"SelfSubjectAccessReview":          "authorization.k8s.io",
+		"SelfSubjectRulesReview":           "authorization.k8s.io",
+		"SubjectAccessReview":              "authorization.k8s.io",
+		"HorizontalPodAutoscaler":          "autoscaling",
+		"CronJob":                          "batch",
+		"Job":                              "batch",
+		"CertificateSigningRequest":        "certificates.k8s.io",
+		"CiliumClusterwideNetworkPolicy":   "cilium.io",
+		"CiliumEgressNATPolicy":            "cilium.io",
+		"CiliumEndpoint":                   "cilium.io",
+		"CiliumExternalWorkload":           "cilium.io",
+		"CiliumIdentity":                   "cilium.io",
+		"CiliumLocalRedirectPolicy":        "cilium.io",
+		"CiliumNetworkPolicy":              "cilium.io",
+		"CiliumNode":                       "cilium.io",
+		"Config":                           "config.gatekeeper.sh",
+		"DenyAddAll":                       "constraints.gatekeeper.sh",
+		"DenyAddSysadmin":                  "constraints.gatekeeper.sh",
+		"DenyAllowPrivilegeEscalation":     "constraints.gatekeeper.sh",
+		"DenyAutomountServiceAccountToken": "constraints.gatekeeper.sh",
+		"DenyDefaultNamespace":             "constraints.gatekeeper.sh",
+		"DenyEgressOrIngressPolicy":        "constraints.gatekeeper.sh",
+		"DenyEgressWildcardIp":             "constraints.gatekeeper.sh",
+		"DenyExternalImages":               "constraints.gatekeeper.sh",
+		"DenyHostAlias":                    "constraints.gatekeeper.sh",
+		"DenyHostIpc":                      "constraints.gatekeeper.sh",
+		"DenyHostNetwork":                  "constraints.gatekeeper.sh",
+		"DenyHostPath":                     "constraints.gatekeeper.sh",
+		"DenyHostPid":                      "constraints.gatekeeper.sh",
+		"DenyIngressPolicyNs1ToNs2":        "constraints.gatekeeper.sh",
+		"DenyLatestImage":                  "constraints.gatekeeper.sh",
+		"DenyMustDropAll":                  "constraints.gatekeeper.sh",
+		"DenyNetpolNaming":                 "constraints.gatekeeper.sh",
+		"DenyNoOriginPull":                 "constraints.gatekeeper.sh",
+		"DenyNotSha256Image":               "constraints.gatekeeper.sh",
+		"DenyNoWhitelistSource":            "constraints.gatekeeper.sh",
+		"DenyPrivileged":                   "constraints.gatekeeper.sh",
+		"DenyRunAsGroupRoot":               "constraints.gatekeeper.sh",
+		"DenyRunAsNonRoot":                 "constraints.gatekeeper.sh",
+		"DenyRunAsUserRoot":                "constraints.gatekeeper.sh",
+		"DenySeccompDisabled":              "constraints.gatekeeper.sh",
+		"DenyShareProcessNamespace":        "constraints.gatekeeper.sh",
+		"DenyUndefinedNamespace":           "constraints.gatekeeper.sh",
+		"DenyVolumeDevices":                "constraints.gatekeeper.sh",
+		"DenyVolumeTypes":                  "constraints.gatekeeper.sh",
+		"EgressOrIngressPolicy":            "constraints.gatekeeper.sh",
+		"IngressPolicyNs1ToNs2":            "constraints.gatekeeper.sh",
+		"NetpolNaming":                     "constraints.gatekeeper.sh",
+		"Lease":                            "coordination.k8s.io",
+		"CouchbaseAutoscaler":              "couchbase.com",
+		"CouchbaseBackupRestore":           "couchbase.com",
+		"CouchbaseBackup":                  "couchbase.com",
+		"CouchbaseBucket":                  "couchbase.com",
+		"CouchbaseCluster":                 "couchbase.com",
+		"CouchbaseCollectionGroup":         "couchbase.com",
+		"CouchbaseCollection":              "couchbase.com",
+		"CouchbaseEphemeralBucket":         "couchbase.com",
+		"CouchbaseGroup":                   "couchbase.com",
+		"CouchbaseMemcachedBucket":         "couchbase.com",
+		"CouchbaseMigrationReplication":    "couchbase.com",
+		"CouchbaseReplication":             "couchbase.com",
+		"CouchbaseRoleBinding":             "couchbase.com",
+		"CouchbaseScopeGroup":              "couchbase.com",
+		"CouchbaseScope":                   "couchbase.com",
+		"CouchbaseUser":                    "couchbase.com",
+		"ENIConfig":                        "crd.k8s.amazonaws.com",
+		"BGPConfiguration":                 "crd.projectcalico.org",
+		"BGPPeer":                          "crd.projectcalico.org",
+		"BlockAffinity":                    "crd.projectcalico.org",
+		"CalicoNodeStatus":                 "crd.projectcalico.org",
+		"ClusterInformation":               "crd.projectcalico.org",
+		"FelixConfiguration":               "crd.projectcalico.org",
+		"GlobalNetworkPolicy":              "crd.projectcalico.org",
+		"GlobalNetworkSet":                 "crd.projectcalico.org",
+		"HostEndpoint":                     "crd.projectcalico.org",
+		"IPAMBlock":                        "crd.projectcalico.org",
+		"IPAMConfig":                       "crd.projectcalico.org",
+		"IPAMHandle":                       "crd.projectcalico.org",
+		"IPPool":                           "crd.projectcalico.org",
+		"IPReservation":                    "crd.projectcalico.org",
+		"KubeControllersConfiguration":     "crd.projectcalico.org",
+		"NetworkPolicy":                    "crd.projectcalico.org",
+		"NetworkSet":                       "crd.projectcalico.org",
+		"EndpointSlice":                    "discovery.k8s.io",
+		"Event":                            "events.k8s.io",
+		"ExpansionTemplate":                "expansion.gatekeeper.sh",
+		"Provider":                         "externaldata.gatekeeper.sh",
+		"AlertProvider":                    "flagger.app",
+		"Canary":                           "flagger.app",
+		"MetricTemplate":                   "flagger.app",
+		"FlowSchema":                       "flowcontrol.apiserver.k8s.io",
+		"PriorityLevelConfiguration":       "flowcontrol.apiserver.k8s.io",
+		"AWSNodeTemplate":                  "karpenter.k8s.aws",
+		"Provisioner":                      "karpenter.sh",
+		"NodeMetrics":                      "metrics.k8s.io",
+		"PodMetrics":                       "metrics.k8s.io",
+		"Assign":                           "mutations.gatekeeper.sh",
+		"AssignImage":                      "mutations.gatekeeper.sh",
+		"AssignMetadata":                   "mutations.gatekeeper.sh",
+		"ModifySet":                        "mutations.gatekeeper.sh",
+		"IngressClass":                     "networking.k8s.io",
+		"Ingress":                          "networking.k8s.io",
+		"RuntimeClass":                     "node.k8s.io",
+		"PodDisruptionBudget":              "policy",
+		"PodSecurityPolicy":                "policy",
+		"ClusterRoleBinding":               "rbac.authorization.k8s.io",
+		"ClusterRole":                      "rbac.authorization.k8s.io",
+		"RoleBinding":                      "rbac.authorization.k8s.io",
+		"Role":                             "rbac.authorization.k8s.io",
+		"PriorityClass":                    "scheduling.k8s.io",
+		"SecretProviderClass":              "secrets-store.csi.x-k8s.io",
+		"SecretProviderClassPodStatus":     "secrets-store.csi.x-k8s.io",
+		"ConstraintPodStatus":              "status.gatekeeper.sh",
+		"ConstraintTemplatePodStatus":      "status.gatekeeper.sh",
+		"MutatorPodStatus":                 "status.gatekeeper.sh",
+		"CSIDriver":                        "storage.k8s.io",
+		"CSINode":                          "storage.k8s.io",
+		"CSIStorageCapacity":               "storage.k8s.io",
+		"StorageClass":                     "storage.k8s.io",
+		"VolumeAttachment":                 "storage.k8s.io",
+		"ConstraintTemplate":               "templates.gatekeeper.sh",
+		"CNINode":                          "vpcresources.k8s.aws",
+		"SecurityGroupPolicy":              "vpcresources.k8s.aws",
+	}
+)

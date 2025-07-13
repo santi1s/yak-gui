@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: test-rollout-canary
+  namespace: default
+  annotations:
+    rollout.argoproj.io/revision: "5"
+  generation: 10
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      maxSurge: 25%
+      maxUnavailable: 1
+      steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause: {duration: 10}
+      - setWeight: 60
+      - pause: {duration: 10}
+      - setWeight: 80
+      - pause: {duration: 10}
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-container
+        image: nginx:1.19
+        ports:
+        - containerPort: 80
+status:
+  phase: Healthy
+  currentPodHash: abc123def456
+  stableRS: def456abc123
+  replicas: 5
+  updatedReplicas: 5
+  readyReplicas: 5
+  availableReplicas: 5
+  currentStepIndex: 7
+  conditions:
+  - type: Progressing
+    status: "True"
+    reason: NewReplicaSetAvailable
+    message: ReplicaSet has successfully progressed.
+  - type: Available
+    status: "True"
+    reason: MinimumReplicasAvailable
+    message: Deployment has minimum availability.
+  - type: Healthy
+    status: "True"
+    reason: RolloutHealthy
+    message: Rollout is healthy
+  canary:
+    currentBackgroundAnalysisRuns:
+    - name: background-analysis-abc123
+      status: Running
+      phase: Running
+    currentStepAnalysisRuns:
+    - name: step-analysis-def456
+      status: Successful
+      phase: Successful

@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: test-rollout-bluegreen
+  namespace: default
+  annotations:
+    rollout.argoproj.io/revision: "3"
+  generation: 6
+spec:
+  replicas: 3
+  strategy:
+    blueGreen:
+      activeService: test-app-active
+      previewService: test-app-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+  selector:
+    matchLabels:
+      app: test-app-bg
+  template:
+    metadata:
+      labels:
+        app: test-app-bg
+    spec:
+      containers:
+      - name: test-container
+        image: nginx:1.20
+        ports:
+        - containerPort: 80
+status:
+  phase: Paused
+  currentPodHash: xyz789abc123
+  stableRS: abc123xyz789
+  replicas: 3
+  updatedReplicas: 3
+  readyReplicas: 3
+  availableReplicas: 3
+  conditions:
+  - type: Progressing
+    status: "False"
+    reason: RolloutPaused
+    message: Rollout is paused
+  - type: Available
+    status: "True"
+    reason: MinimumReplicasAvailable
+    message: Deployment has minimum availability.
+  - type: Paused
+    status: "True"
+    reason: BlueGreenPause
+    message: Rollout is paused before promotion
+  blueGreen:
+    prePromotionAnalysisRuns:
+    - name: pre-promotion-analysis-xyz789
+      status: Successful
+      phase: Successful

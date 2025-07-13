@@ -1,0 +1,28 @@
+applications:
+  myapp:
+    destination:
+      namespace: mynamespace
+    sources:
+      - exportName: myapp1
+        chart: .
+        path: testdata/chart
+        helm:
+          valuesObject:
+            a: foo
+          valueFiles:
+            - testdata/values-1.yaml
+            - testdata/values-2.yaml
+  myapp2:
+    destination:
+      namespace: mynamespace
+    sources:
+      - exportName: myapp2
+        chart: .
+        path: testdata/chart
+        helm:
+          valuesObject:
+            a: foo
+          valueFiles:
+            - testdata/values-1.yaml
+            - testdata/values-2.yaml
+    

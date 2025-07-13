@@ -1,0 +1,94 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisRun
+metadata:
+  name: test-analysis-run
+  namespace: default
+  labels:
+    rollouts-pod-template-hash: abc123def456
+  ownerReferences:
+  - apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: test-rollout-canary
+    uid: 12345-abcde-67890-fghij
+spec:
+  metrics:
+  - name: success-rate
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          sum(irate(
+            istio_requests_total{reporter="destination",destination_service_name="test-app",response_code!~"5.*"}[5m]
+          )) / 
+          sum(irate(
+            istio_requests_total{reporter="destination",destination_service_name="test-app"}[5m]
+          ))
+    successCondition: result[0] >= 0.95
+    interval: 10s
+    count: 5
+  - name: avg-req-duration
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          histogram_quantile(0.99,
+            sum(irate(istio_request_duration_milliseconds_bucket{reporter="destination",destination_service_name="test-app"}[5m])) by (le)
+          )
+    successCondition: result[0] <= 1000
+    interval: 10s
+    count: 5
+status:
+  phase: Successful
+  startedAt: "2023-01-01T10:00:00Z"
+  finishedAt: "2023-01-01T10:05:00Z"
+  metricResults:
+  - name: success-rate
+    phase: Successful
+    successful: 5
+    count: 5
+    measurements:
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:00Z"
+      finishedAt: "2023-01-01T10:00:10Z"
+      value: "0.98"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:10Z"
+      finishedAt: "2023-01-01T10:00:20Z"
+      value: "0.97"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:20Z"
+      finishedAt: "2023-01-01T10:00:30Z"
+      value: "0.99"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:30Z"
+      finishedAt: "2023-01-01T10:00:40Z"
+      value: "0.96"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:40Z"
+      finishedAt: "2023-01-01T10:00:50Z"
+      value: "0.98"
+  - name: avg-req-duration
+    phase: Successful
+    successful: 5
+    count: 5
+    measurements:
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:00Z"
+      finishedAt: "2023-01-01T10:00:10Z"
+      value: "850"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:10Z"
+      finishedAt: "2023-01-01T10:00:20Z"
+      value: "920"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:20Z"
+      finishedAt: "2023-01-01T10:00:30Z"
+      value: "780"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:30Z"
+      finishedAt: "2023-01-01T10:00:40Z"
+      value: "890"
+    - phase: Successful
+      startedAt: "2023-01-01T10:00:40Z"
+      finishedAt: "2023-01-01T10:00:50Z"
+      value: "810"

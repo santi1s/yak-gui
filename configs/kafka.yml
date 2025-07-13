@@ -1,0 +1,145 @@
+current-cluster: staging-aws-de-fra-1
+clusteroverride: ""
+clusters:
+- name: local
+  version: ""
+  brokers:
+  - 127.0.0.1:9098
+  SASL: null
+  TLS: null
+  security-protocol: ""
+  schema-registry-url: http://127.0.0.1:8080/apis/ccompat/v6
+- name: staging-confluent-fr
+  version: ""
+  brokers:
+  - 10.250.59.79:9098
+  - 10.250.127.160:9098
+  - 10.250.107.67:9098
+  SASL:
+    mechanism: PLAIN
+    username: admin
+    password: admin-password
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: ""
+  TLS:
+    cafile: ""
+    clientfile: ""
+    clientkeyfile: ""
+    insecure: true
+  security-protocol: SASL_SSL
+  schema-registry-url: http://localhost:8081/apis/ccompat/v6
+- name: staging-confluent-de
+  version: ""
+  brokers:
+  - 10.210.107.39:9098
+  - 10.210.113.206:9098
+  - 10.210.95.106:9098
+  SASL:
+    mechanism: PLAIN
+    username: admin
+    password: admin-password
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: ""
+  TLS:
+    cafile: ""
+    clientfile: ""
+    clientkeyfile: ""
+    insecure: true
+  security-protocol: SASL_SSL
+  schema-registry-url: http://schema-registry-confluent-staging.doctolib.tech:8080/apis/ccompat/v6
+- name: staging-aws-fr-par-1
+  version: 3.4.0
+  brokers:
+  - b-4.kafkastagingawsfrpar1.19a7cp.c2.kafka.eu-west-3.amazonaws.com:9098
+  - b-5.kafkastagingawsfrpar1.19a7cp.c2.kafka.eu-west-3.amazonaws.com:9098
+  - b-6.kafkastagingawsfrpar1.19a7cp.c2.kafka.eu-west-3.amazonaws.com:9098
+  SASL:
+    mechanism: AWS_MSK_IAM
+    username: ""
+    password: ""
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: eu-west-3
+  TLS: null
+  security-protocol: SASL_SSL
+  schema-registry-url: http://schema-registry-staging.doctolib.tech:8080/apis/ccompat/v6
+- name: staging-aws-de-fra-1
+  version: 3.4.0
+  brokers:
+  - b-5.kafka2stagingawsdef.t1ojlh.c1.kafka.eu-central-1.amazonaws.com:9098
+  - b-1.kafka2stagingawsdef.t1ojlh.c1.kafka.eu-central-1.amazonaws.com:9098
+  - b-3.kafka2stagingawsdef.t1ojlh.c1.kafka.eu-central-1.amazonaws.com:9098
+  SASL:
+    mechanism: AWS_MSK_IAM
+    username: ""
+    password: ""
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: eu-central-1
+  TLS: null
+  security-protocol: SASL_SSL
+  schema-registry-url: http://schema-registry-staging.doctolib.tech:8080/apis/ccompat/v6
+- name: prd-aws-de-fra-1
+  version: 3.4.0
+  brokers:
+  - b-3.kafkaprdawsdefra1.1dj8ck.c8.kafka.eu-central-1.amazonaws.com:9098
+  - b-6.kafkaprdawsdefra1.1dj8ck.c8.kafka.eu-central-1.amazonaws.com:9098
+  - b-1.kafkaprdawsdefra1.1dj8ck.c8.kafka.eu-central-1.amazonaws.com:9098
+  SASL:
+    mechanism: AWS_MSK_IAM
+    username: ""
+    password: ""
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: eu-central-1
+  TLS: null
+  security-protocol: SASL_SSL
+  schema-registry-url: http://schema-registry-production.doctolib.tech:8080/apis/ccompat/v6
+- name: prd-aws-fr-par-1
+  version: 3.4.0
+  brokers:
+  - b-3.kafkaprdawsfrpar1.of0kcm.c4.kafka.eu-west-3.amazonaws.com:9098
+  - b-8.kafkaprdawsfrpar1.of0kcm.c4.kafka.eu-west-3.amazonaws.com:9098
+  - b-7.kafkaprdawsfrpar1.of0kcm.c4.kafka.eu-west-3.amazonaws.com:9098
+  SASL:
+    mechanism: AWS_MSK_IAM
+    username: ""
+    password: ""
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: eu-west-3
+  TLS: null
+  security-protocol: SASL_SSL
+  schema-registry-url: http://schema-registry-production.doctolib.tech:8080/apis/ccompat/v6
+- name: preprod
+  version: 3.4.0
+  brokers:
+  - b-2.preprodkafkacluster.vc75ur.c3.kafka.eu-central-1.amazonaws.com:9098
+  - b-3.preprodkafkacluster.vc75ur.c3.kafka.eu-central-1.amazonaws.com:9098
+  - b-1.preprodkafkacluster.vc75ur.c3.kafka.eu-central-1.amazonaws.com:9098
+  SASL:
+    mechanism: AWS_MSK_IAM
+    username: ""
+    password: ""
+    clientID: ""
+    clientSecret: ""
+    tokenURL: ""
+    token: ""
+    aws_region: eu-central-1
+  TLS: null
+  security-protocol: SASL_SSL
+  schema-registry-url: http://10.17.110.236:8081/apis/ccompat/v6

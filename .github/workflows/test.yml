@@ -1,0 +1,116 @@
+---
+name: Run tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  merge_group:
+
+env:
+  GO_VERSION: 1.24.3
+  GOLANGCI_LINT_VERSION: v2.1
+
+concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: true
+
+jobs:
+  diff:
+    name: Get the list of impacted packages
+    runs-on: prod-linux-s
+    outputs:
+      package_list: ${{ steps.create_package_list.outputs.package_list }}
+    steps:
+      - uses: doctolib/actions/checkout@429fae9c3fefa82b9a7fc0223edfaecc7234c787 # checkout-v0.1.0
+      - name: Get all YML files that have changed
+        id: changed-files-yaml
+        uses: tj-actions/changed-files@a96679dfee2a1e64b1db5a210c0ffaf1f2cb24ce
+        with:
+          files: |
+            **/*.go
+            go.mod
+            go.sum
+
+      - name: Debug change detection
+        run: |
+          echo "[DEBUG] all_modified_files: "
+          echo "${{ steps.changed-files-yaml.outputs.all_modified_files }}"
+          echo ""
+
+      - name: Create the list of packages to check
+        id: create_package_list
+        run: |
+          files="${{ steps.changed-files-yaml.outputs.all_modified_files }}"
+
+          if [[ -z "$files" ]]; then
+            echo "package_list=[]" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          # Check if go.mod or go.sum are in the modified files
+          if echo "$files" | grep -q -E "(go\.mod|go\.sum)"; then
+            echo "go.mod or go.sum detected in modified files, testing all packages"
+            # Find all directories containing .go files
+            dirs_list=$(find . -name "*.go" -type f -print0 | xargs -0 -n 1 dirname | sort -u | sed 's|^\./||')
+          else
+            # Only test the *.go files that have changed
+            dirs_list=$(echo "$files" | xargs -n 1 dirname | sort -u)
+          fi
+
+          json_output=$(echo "$dirs_list" | jq -Rsc 'split("\n") | map(select(length > 0))')
+          echo "Formatted JSON output: \"$json_output\""
+          echo "package_list=${json_output}" >> "${GITHUB_OUTPUT}"
+
+  golangci-lint:
+    name: golangci-lint
+    runs-on: prod-linux-l
+    steps:
+      - uses: doctolib/actions/checkout@429fae9c3fefa82b9a7fc0223edfaecc7234c787 # checkout-v0.1.0
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7
+        with:
+          args: "--config=.golangci.yml --timeout 600s --verbose"
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+
+  unit-test:
+    name: Execute unit tests
+    needs: diff
+    if: needs.diff.outputs.package_list != '[]'
+    runs-on: prod-linux-l
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.diff.outputs.package_list) }}
+    steps:
+      - uses: doctolib/actions/checkout@429fae9c3fefa82b9a7fc0223edfaecc7234c787 # checkout-v0.1.0
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+      - uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4
+        with:
+          version: 'latest'
+      - name: Execute go test
+        run: go test -v -cover ./${{ matrix.package }} --timeout 600s
+
+  outcome:
+    needs: [diff, unit-test, golangci-lint]
+    name: "required tests passed"
+    runs-on: prod-linux-xs
+    # execute this job in any case, because the goal is to check the outcome and execute post actions
+    if: ${{ always() }}
+    timeout-minutes: 1
+    steps:
+      - name: Fail job on any previous error
+        id: fail
+        # if any job failed: fail the job
+        if: ${{ contains(join(needs.*.result, ','), 'failure') }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            core.setFailed('Some previous checks failed')
