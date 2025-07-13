@@ -61,9 +61,6 @@ jobs:
           - os: ubuntu-latest
             platform: linux/amd64
             name: linux
-          - os: windows-latest
-            platform: windows/amd64
-            name: windows
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     permissions:
@@ -149,16 +146,6 @@ jobs:
             exit 1
           fi
 
-      - name: Create GUI Archives (Windows)
-        if: matrix.name == 'windows'
-        run: |
-          cd yak-gui
-          if (Test-Path "build/bin/yak-gui.exe") {
-            Compress-Archive -Path "build/bin/yak-gui.exe" -DestinationPath "../yak-gui-windows-amd64.zip"
-          } else {
-            Write-Host "No Windows binary found at build/bin/yak-gui.exe"
-            exit 1
-          }
 
       - name: Upload GUI Artifacts
         uses: actions/upload-artifact@v4
