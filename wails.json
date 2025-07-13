@@ -1,0 +1,23 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "yak-gui",
+  "outputfilename": "yak-gui",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "http://localhost:34115",
+  "author": {
+    "name": "Doctolib SRE",
+    "email": "sre@doctolib.com"
+  },
+  "info": {
+    "companyName": "Doctolib",
+    "productName": "Yak ArgoCD GUI",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2024, Doctolib",
+    "description": "ArgoCD GUI for Yak CLI - Manage your ArgoCD applications with a modern web interface"
+  },
+  "nsisType": "multiple",
+  "obfuscated": false,
+  "garbleargs": ""
+}

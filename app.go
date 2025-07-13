@@ -1,0 +1,1289 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"sort"
+	"strings"
+	"time"
+)
+
+// Simple test function to see if Wails generates any bindings
+func Greet(name string) string {
+	return fmt.Sprintf("Hello %s from Wails!", name)
+}
+
+// App struct - Wails app context
+type App struct {
+	ctx context.Context
+}
+
+// ArgoApp represents an ArgoCD application for the frontend
+type ArgoApp struct {
+	AppName    string   `json:"AppName"`
+	Health     string   `json:"Health"`
+	Sync       string   `json:"Sync"`
+	Suspended  bool     `json:"Suspended"`
+	SyncLoop   string   `json:"SyncLoop"`
+	Conditions []string `json:"Conditions"`
+}
+
+// ArgoAppDetail represents detailed ArgoCD application info
+type ArgoAppDetail struct {
+	ArgoApp
+	Namespace    string            `json:"namespace"`
+	Project      string            `json:"project"`
+	RepoURL      string            `json:"repoUrl"`
+	Path         string            `json:"path"`
+	TargetRev    string            `json:"targetRev"`
+	Labels       map[string]string `json:"labels"`
+	Annotations  map[string]string `json:"annotations"`
+	CreatedAt    string            `json:"createdAt"`
+}
+
+// ArgoResource represents an ArgoCD resource
+type ArgoResource struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Group     string `json:"group"`
+	Namespace string `json:"namespace"`
+	Health    string `json:"health"`
+	Status    string `json:"status"`
+	Orphaned  bool   `json:"orphaned"`
+}
+
+// ArgoConfig represents ArgoCD connection configuration
+type ArgoConfig struct {
+	Server   string `json:"server"`
+	Project  string `json:"project"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+// RolloutStatus represents an Argo Rollout status
+type RolloutStatus struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
+	Status      string            `json:"status"`
+	Replicas    string            `json:"replicas"`
+	Updated     string            `json:"updated"`
+	Ready       string            `json:"ready"`
+	Available   string            `json:"available"`
+	Strategy    string            `json:"strategy"`
+	CurrentStep string            `json:"currentStep"`
+	Revision    string            `json:"revision"`
+	Message     string            `json:"message"`
+	Analysis    string            `json:"analysis"`
+	Images      map[string]string `json:"images"`
+}
+
+// RolloutListItem represents a rollout in list view
+type RolloutListItem struct {
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Status    string            `json:"status"`
+	Replicas  string            `json:"replicas"`
+	Age       string            `json:"age"`
+	Strategy  string            `json:"strategy"`
+	Revision  string            `json:"revision"`
+	Images    map[string]string `json:"images"`
+}
+
+// KubernetesConfig represents Kubernetes connection configuration
+type KubernetesConfig struct {
+	Server    string `json:"server"`
+	Namespace string `json:"namespace"`
+}
+
+// SecretConfig represents secret management configuration
+type SecretConfig struct {
+	Platform    string `json:"platform"`
+	Environment string `json:"environment"`
+	Team        string `json:"team"`
+}
+
+// SecretListItem represents a secret in list view
+type SecretListItem struct {
+	Path        string `json:"path"`
+	Version     int    `json:"version"`
+	Owner       string `json:"owner"`
+	Usage       string `json:"usage"`
+	Source      string `json:"source"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+// SecretData represents secret key-value data
+type SecretData struct {
+	Path     string            `json:"path"`
+	Version  int               `json:"version"`
+	Data     map[string]string `json:"data"`
+	Metadata SecretMetadata    `json:"metadata"`
+}
+
+// SecretMetadata represents secret metadata
+type SecretMetadata struct {
+	Owner       string `json:"owner"`
+	Usage       string `json:"usage"`
+	Source      string `json:"source"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+	Version     int    `json:"version"`
+	Destroyed   bool   `json:"destroyed"`
+}
+
+// NewApp creates a new App application struct
+func NewApp() *App {
+	return &App{}
+}
+
+// startup is called when the app starts, before the frontend is loaded
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+}
+
+// domReady is called after front-end resources have been loaded
+func (a *App) domReady(ctx context.Context) {
+	// Add any logic here that needs to run after the DOM is ready
+}
+
+// beforeClose is called when the application is about to quit
+func (a *App) beforeClose(ctx context.Context) (prevent bool) {
+	// Return true to prevent the application from quitting
+	return false
+}
+
+// shutdown is called during application termination
+func (a *App) shutdown(ctx context.Context) {
+	// Perform any teardown of resources here
+}
+
+// Greet returns a greeting for the given name
+func (a *App) Greet(name string) string {
+	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+// TestSimpleArray returns a simple array to test Wails binding
+func (a *App) TestSimpleArray() []string {
+	return []string{"app1", "app2", "app3"}
+}
+
+// GetArgoCDServerFromProfile gets the ArgoCD server address from AWS_PROFILE environment variable
+func (a *App) GetArgoCDServerFromProfile() (string, error) {
+	awsProfile := os.Getenv("AWS_PROFILE")
+	if awsProfile == "" {
+		return "", fmt.Errorf("AWS_PROFILE environment variable is not set")
+	}
+	return "argocd-" + awsProfile + ".doctolib.net", nil
+}
+
+// GetCurrentAWSProfile returns the current AWS_PROFILE environment variable
+func (a *App) GetCurrentAWSProfile() string {
+	return os.Getenv("AWS_PROFILE")
+}
+
+// LoginToArgoCD attempts to login to ArgoCD using the yak CLI
+func (a *App) LoginToArgoCD(config ArgoConfig) error {
+	if config.Server == "" {
+		return fmt.Errorf("ArgoCD server is required")
+	}
+
+	// Build yak login command
+	args := []string{"argocd", "login"}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+
+	// Execute yak argocd login with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	fmt.Printf("DEBUG: Executing login command: ../yak %v\n", args)
+	
+	// Run the command and wait for completion
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to login to ArgoCD: %w", err)
+	}
+
+	fmt.Printf("DEBUG: Login command completed successfully\n")
+	return nil
+}
+
+// TestSimpleApps returns a simple version of ArgoApp to test
+func (a *App) TestSimpleApps() []ArgoApp {
+	return []ArgoApp{
+		{
+			AppName: "test-app-1",
+			Health:  "Healthy",
+			Sync:    "Synced",
+		},
+		{
+			AppName: "test-app-2", 
+			Health:  "Degraded",
+			Sync:    "OutOfSync",
+		},
+	}
+}
+
+// GetArgoApps gets all ArgoCD applications for a project by calling the yak CLI
+func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
+	if config.Server == "" {
+		return nil, fmt.Errorf("ArgoCD server is required")
+	}
+
+	// Build yak command
+	args := []string{"argocd", "status", "--json"}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+	if config.Project != "" {
+		args = append(args, "--project", config.Project)
+	}
+
+	// Execute yak argocd status --json with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	// Add debugging
+	fmt.Printf("DEBUG: Executing command: ../yak %v\n", args)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		// Get more detailed error information
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yak command failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("yak command timed out after 30 seconds")
+		}
+		return nil, fmt.Errorf("failed to execute yak command: %w", err)
+	}
+	
+	fmt.Printf("DEBUG: Command output length: %d bytes\n", len(output))
+
+	// Check if output looks like HTML (SAML redirect)
+	outputStr := string(output)
+	if strings.Contains(strings.ToLower(outputStr), "<!doctype") || 
+	   strings.Contains(strings.ToLower(outputStr), "<html") ||
+	   strings.Contains(strings.ToLower(outputStr), "saml") {
+		fmt.Printf("DEBUG: Detected HTML/SAML response instead of JSON\n")
+		return nil, fmt.Errorf("authentication required: received SAML redirect instead of JSON data. Please authenticate with ArgoCD first using 'yak argocd login' or try refreshing")
+	}
+
+	// Parse JSON output from your CLI
+	var statusData map[string]interface{}
+	if err := json.Unmarshal(output, &statusData); err != nil {
+		fmt.Printf("DEBUG: Failed to parse JSON: %v\n", err)
+		truncatedOutput := outputStr
+		if len(outputStr) > 200 {
+			truncatedOutput = outputStr[:200]
+		}
+		fmt.Printf("DEBUG: First 200 chars of output: %s\n", truncatedOutput)
+		return nil, fmt.Errorf("failed to parse yak output: %w", err)
+	}
+	
+	fmt.Printf("DEBUG: Parsed %d applications from JSON\n", len(statusData))
+
+	// Convert to GUI format
+	var apps []ArgoApp
+	for appName, appDataInterface := range statusData {
+		appData, ok := appDataInterface.(map[string]interface{})
+		if !ok {
+			fmt.Printf("DEBUG: Skipping %s - not a map\n", appName)
+			continue
+		}
+
+		app := ArgoApp{
+			AppName:    getString(appData, "AppName"),
+			Health:     getString(appData, "Health"),
+			Sync:       getString(appData, "Sync"),
+			Suspended:  getBool(appData, "Suspended"),
+			SyncLoop:   getString(appData, "SyncLoop"),
+			Conditions: getStringSlice(appData, "Conditions"),
+		}
+		
+		// If AppName field is empty, use the map key as the name
+		if app.AppName == "" {
+			app.AppName = appName
+		}
+		
+		fmt.Printf("DEBUG: Processed app: %s (Health: %s, Sync: %s)\n", app.AppName, app.Health, app.Sync)
+		apps = append(apps, app)
+	}
+
+	fmt.Printf("DEBUG: Returning %d apps\n", len(apps))
+
+	// Sort by name for consistent ordering
+	sort.Slice(apps, func(i, j int) bool {
+		return apps[i].AppName < apps[j].AppName
+	})
+
+	return apps, nil
+}
+
+// SyncArgoApp synchronizes an ArgoCD application
+func (a *App) SyncArgoApp(config ArgoConfig, appName string, prune, dryRun bool) error {
+	// Build yak command
+	args := []string{"argocd", "sync", "-a", appName}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+	if config.Project != "" {
+		args = append(args, "--project", config.Project)
+	}
+	if prune {
+		args = append(args, "--prune")
+	}
+	if dryRun {
+		args = append(args, "--dry-run")
+	}
+
+	// Execute yak argocd sync
+	cmd := exec.Command("../yak", args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to sync application %s: %w", appName, err)
+	}
+
+	return nil
+}
+
+// RefreshArgoApp refreshes an ArgoCD application
+func (a *App) RefreshArgoApp(config ArgoConfig, appName string) error {
+	// Build yak command
+	args := []string{"argocd", "refresh", "-a", appName}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+	if config.Project != "" {
+		args = append(args, "--project", config.Project)
+	}
+
+	// Execute yak argocd refresh
+	cmd := exec.Command("../yak", args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to refresh application %s: %w", appName, err)
+	}
+
+	return nil
+}
+
+// SuspendArgoApp suspends an ArgoCD application using sync windows
+func (a *App) SuspendArgoApp(config ArgoConfig, appName string) error {
+	// Build yak command
+	args := []string{"argocd", "suspend", "-a", appName}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+	if config.Project != "" {
+		args = append(args, "--project", config.Project)
+	}
+
+	// Execute yak argocd suspend
+	cmd := exec.Command("../yak", args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to suspend application %s: %w", appName, err)
+	}
+
+	return nil
+}
+
+// UnsuspendArgoApp removes suspension from an ArgoCD application
+func (a *App) UnsuspendArgoApp(config ArgoConfig, appName string) error {
+	// Build yak command
+	args := []string{"argocd", "unsuspend", "-a", appName}
+	if config.Server != "" {
+		args = append(args, "--argocd-addr", config.Server)
+	}
+	if config.Project != "" {
+		args = append(args, "--project", config.Project)
+	}
+
+	// Execute yak argocd unsuspend
+	cmd := exec.Command("../yak", args...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to unsuspend application %s: %w", appName, err)
+	}
+
+	return nil
+}
+
+// GetRollouts gets all rollouts using the yak CLI
+func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
+	// Build yak command
+	args := []string{"rollouts", "list", "--json"}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	} else {
+		args = append(args, "--all")
+	}
+
+	// Execute yak rollouts list --json with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	fmt.Printf("DEBUG: Executing rollouts list command: ../yak %v\n", args)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yak rollouts list failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("yak rollouts list timed out after 30 seconds")
+		}
+		return nil, fmt.Errorf("failed to execute yak rollouts list: %w", err)
+	}
+	
+	fmt.Printf("DEBUG: Rollouts list output length: %d bytes\n", len(output))
+
+	// Check if output looks like HTML (authentication issues)
+	outputStr := string(output)
+	if strings.Contains(strings.ToLower(outputStr), "<!doctype") || 
+	   strings.Contains(strings.ToLower(outputStr), "<html") {
+		return nil, fmt.Errorf("authentication required: received HTML response instead of JSON data")
+	}
+
+	// Parse JSON output - yak rollouts returns a Kubernetes List object
+	var listResponse struct {
+		Items []map[string]interface{} `json:"items"`
+	}
+	if err := json.Unmarshal(output, &listResponse); err != nil {
+		fmt.Printf("DEBUG: Failed to parse rollouts JSON: %v\n", err)
+		truncatedOutput := outputStr
+		if len(outputStr) > 200 {
+			truncatedOutput = outputStr[:200]
+		}
+		fmt.Printf("DEBUG: First 200 chars of rollouts output: %s\n", truncatedOutput)
+		return nil, fmt.Errorf("failed to parse yak rollouts output: %w", err)
+	}
+
+	// Convert Kubernetes rollout objects to our simplified structure
+	var rollouts []RolloutListItem
+	for _, item := range listResponse.Items {
+		metadata, ok := item["metadata"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		
+		spec, _ := item["spec"].(map[string]interface{})
+		status, _ := item["status"].(map[string]interface{})
+		
+		rollout := RolloutListItem{
+			Name:      getString(metadata, "name"),
+			Namespace: getString(metadata, "namespace"),
+			Status:    getRolloutPhase(status),
+			Replicas:  getRolloutReplicas(status),
+			Age:       getRolloutAge(metadata),
+			Strategy:  getRolloutStrategy(spec),
+			Revision:  getRolloutRevision(metadata),
+			Images:    getRolloutImages(spec),
+		}
+		
+		rollouts = append(rollouts, rollout)
+	}
+
+	fmt.Printf("DEBUG: Parsed %d rollouts from JSON\n", len(rollouts))
+	return rollouts, nil
+}
+
+// GetRolloutStatus gets detailed status for a specific rollout
+func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*RolloutStatus, error) {
+	if rolloutName == "" {
+		return nil, fmt.Errorf("rollout name is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "status", "-r", rolloutName, "--json"}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+
+	// Execute yak rollouts status with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	fmt.Printf("DEBUG: Executing rollouts status command: ../yak %v\n", args)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yak rollouts status failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		return nil, fmt.Errorf("failed to execute yak rollouts status: %w", err)
+	}
+
+	// Parse JSON output - expecting a Kubernetes object
+	var rolloutObj map[string]interface{}
+	if err := json.Unmarshal(output, &rolloutObj); err != nil {
+		return nil, fmt.Errorf("failed to parse rollout status: %w", err)
+	}
+
+	// Extract metadata, spec, and status
+	metadata, _ := rolloutObj["metadata"].(map[string]interface{})
+	spec, _ := rolloutObj["spec"].(map[string]interface{})
+	statusObj, _ := rolloutObj["status"].(map[string]interface{})
+
+	// Build RolloutStatus from Kubernetes object
+	status := &RolloutStatus{
+		Name:        getString(metadata, "name"),
+		Namespace:   getString(metadata, "namespace"),
+		Status:      getRolloutPhase(statusObj),
+		Replicas:    getRolloutReplicas(statusObj),
+		Updated:     "0", // TODO: extract from status if available
+		Ready:       "0", // TODO: extract from status if available
+		Available:   "0", // TODO: extract from status if available
+		Strategy:    getRolloutStrategy(spec),
+		CurrentStep: "0", // TODO: extract from status if available
+		Revision:    getRolloutRevision(metadata),
+		Message:     getString(statusObj, "message"),
+		Analysis:    "", // TODO: extract analysis if available
+		Images:      getRolloutImages(spec),
+	}
+
+	return status, nil
+}
+
+// PromoteRollout promotes a rollout to the next step or full deployment
+func (a *App) PromoteRollout(config KubernetesConfig, rolloutName string, full bool) error {
+	if rolloutName == "" {
+		return fmt.Errorf("rollout name is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "promote", "-r", rolloutName}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+	if full {
+		args = append(args, "--full")
+	}
+
+	// Execute yak rollouts promote
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts promote command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to promote rollout %s: %w", rolloutName, err)
+	}
+
+	return nil
+}
+
+// PauseRollout pauses a rollout
+func (a *App) PauseRollout(config KubernetesConfig, rolloutName string) error {
+	if rolloutName == "" {
+		return fmt.Errorf("rollout name is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "pause", "-r", rolloutName}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+
+	// Execute yak rollouts pause
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts pause command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to pause rollout %s: %w", rolloutName, err)
+	}
+
+	return nil
+}
+
+// AbortRollout aborts a rollout and rolls back to stable version
+func (a *App) AbortRollout(config KubernetesConfig, rolloutName string) error {
+	if rolloutName == "" {
+		return fmt.Errorf("rollout name is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "abort", "-r", rolloutName}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+
+	// Execute yak rollouts abort
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts abort command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to abort rollout %s: %w", rolloutName, err)
+	}
+
+	return nil
+}
+
+// RestartRollout restarts rollout pods
+func (a *App) RestartRollout(config KubernetesConfig, rolloutName string) error {
+	if rolloutName == "" {
+		return fmt.Errorf("rollout name is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "restart", "-r", rolloutName}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+
+	// Execute yak rollouts restart
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts restart command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to restart rollout %s: %w", rolloutName, err)
+	}
+
+	return nil
+}
+
+// SetRolloutImage updates the image for a rollout
+func (a *App) SetRolloutImage(config KubernetesConfig, rolloutName, image, container string) error {
+	if rolloutName == "" {
+		return fmt.Errorf("rollout name is required")
+	}
+	if image == "" {
+		return fmt.Errorf("image is required")
+	}
+
+	// Build yak command
+	args := []string{"rollouts", "set-image", "-r", rolloutName, "--image", image}
+	if config.Server != "" {
+		args = append(args, "--server", config.Server)
+	}
+	if config.Namespace != "" {
+		args = append(args, "--namespace", config.Namespace)
+	}
+	if container != "" {
+		args = append(args, "--container", container)
+	}
+
+	// Execute yak rollouts set-image
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts set-image command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to set image for rollout %s: %w", rolloutName, err)
+	}
+
+	return nil
+}
+
+// GetSecrets lists secrets from a path using the yak CLI
+func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, error) {
+	// Build yak command
+	args := []string{"secret", "list", "--json"}
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+	if path != "" {
+		args = append(args, "--path", path)
+	}
+
+	// Execute yak secret list --json with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	fmt.Printf("DEBUG: Executing secret list command: ../yak %v\n", args)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yak secret list failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("yak secret list timed out after 30 seconds")
+		}
+		return nil, fmt.Errorf("failed to execute yak secret list: %w", err)
+	}
+	
+	fmt.Printf("DEBUG: Secret list output length: %d bytes\n", len(output))
+
+	// Parse JSON output - yak secret may return various formats
+	outputStr := string(output)
+	
+	// First try to parse as an array directly
+	var secrets []SecretListItem
+	if err := json.Unmarshal(output, &secrets); err != nil {
+		// If that fails, try to parse as a map/object
+		var secretMap map[string]interface{}
+		if mapErr := json.Unmarshal(output, &secretMap); mapErr != nil {
+			// If both fail, log the output for debugging
+			fmt.Printf("DEBUG: Failed to parse secrets JSON as array: %v\n", err)
+			fmt.Printf("DEBUG: Failed to parse secrets JSON as map: %v\n", mapErr)
+			truncatedOutput := outputStr
+			if len(outputStr) > 200 {
+				truncatedOutput = outputStr[:200]
+			}
+			fmt.Printf("DEBUG: First 200 chars of secret output: %s\n", truncatedOutput)
+			return nil, fmt.Errorf("failed to parse yak secret output: %w", err)
+		}
+		
+		// If it's a map, try to extract secrets from it
+		fmt.Printf("DEBUG: Parsing as map, keys: %v\n", getMapKeys(secretMap))
+		secrets = parseSecretsFromMap(secretMap)
+		fmt.Printf("DEBUG: Extracted %d secrets from map\n", len(secrets))
+	}
+
+	fmt.Printf("DEBUG: Final result - returning %d secrets\n", len(secrets))
+	for i, secret := range secrets {
+		if i < 3 { // Log first few secrets for debugging
+			fmt.Printf("DEBUG: Secret %d: path=%s, owner=%s, version=%d\n", i, secret.Path, secret.Owner, secret.Version)
+		}
+	}
+	return secrets, nil
+}
+
+// GetSecretData retrieves secret data from a specific path
+func (a *App) GetSecretData(config SecretConfig, path string, version int) (*SecretData, error) {
+	if path == "" {
+		return nil, fmt.Errorf("secret path is required")
+	}
+
+	// Build yak command
+	args := []string{"secret", "get", "--json", "--path", path}
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+	if version > 0 {
+		args = append(args, "--version", fmt.Sprintf("%d", version))
+	}
+
+	// Execute yak secret get with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, "../yak", args...)
+	
+	fmt.Printf("DEBUG: Executing secret get command: ../yak %v\n", args)
+	
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yak secret get failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		return nil, fmt.Errorf("failed to execute yak secret get: %w", err)
+	}
+
+	// Parse JSON output
+	var secretData SecretData
+	if err := json.Unmarshal(output, &secretData); err != nil {
+		return nil, fmt.Errorf("failed to parse secret data: %w", err)
+	}
+
+	return &secretData, nil
+}
+
+// CreateSecret creates a new secret
+func (a *App) CreateSecret(config SecretConfig, path, owner, usage, source string, data map[string]string) error {
+	if path == "" {
+		return fmt.Errorf("secret path is required")
+	}
+	if owner == "" {
+		return fmt.Errorf("owner is required")
+	}
+	if usage == "" {
+		return fmt.Errorf("usage is required")
+	}
+	if source == "" {
+		return fmt.Errorf("source is required")
+	}
+
+	// Build yak command
+	args := []string{"secret", "create", "--path", path, "--owner", owner, "--usage", usage, "--source", source}
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+
+	// Add data as key=value pairs
+	for key, value := range data {
+		args = append(args, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Execute yak secret create
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing secret create command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create secret %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// UpdateSecret updates an existing secret
+func (a *App) UpdateSecret(config SecretConfig, path string, data map[string]string) error {
+	if path == "" {
+		return fmt.Errorf("secret path is required")
+	}
+
+	// Build yak command
+	args := []string{"secret", "update", "--path", path}
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+
+	// Add data as key=value pairs
+	for key, value := range data {
+		args = append(args, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Execute yak secret update
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing secret update command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to update secret %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// DeleteSecret deletes a secret version
+func (a *App) DeleteSecret(config SecretConfig, path string, version int) error {
+	if path == "" {
+		return fmt.Errorf("secret path is required")
+	}
+
+	// Build yak command
+	args := []string{"secret", "delete", "--path", path}
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+	if version > 0 {
+		args = append(args, "--version", fmt.Sprintf("%d", version))
+	}
+
+	// Execute yak secret delete
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing secret delete command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to delete secret %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// parseSecretsFromMap extracts secrets from a map structure
+func parseSecretsFromMap(secretMap map[string]interface{}) []SecretListItem {
+	var secrets []SecretListItem
+	
+	// Check if it has a "keys" array (the actual format returned by yak secret list)
+	if keysArray, ok := secretMap["keys"].([]interface{}); ok {
+		fmt.Printf("DEBUG: Found keys array with %d items\n", len(keysArray))
+		for _, keyItem := range keysArray {
+			if keyStr, ok := keyItem.(string); ok {
+				// Create a basic SecretListItem with just the path
+				// Since yak secret list only returns paths, we'll need metadata from individual gets
+				secret := SecretListItem{
+					Path:      keyStr,
+					Version:   0,        // Unknown from list command
+					Owner:     "Unknown", // Unknown from list command
+					Usage:     "Unknown", // Unknown from list command
+					Source:    "Unknown", // Unknown from list command
+					CreatedAt: "",       // Unknown from list command
+					UpdatedAt: "",       // Unknown from list command
+				}
+				secrets = append(secrets, secret)
+			}
+		}
+		return secrets
+	}
+	
+	// Try other possible structures
+	if secretsArray, ok := secretMap["secrets"].([]interface{}); ok {
+		secrets = parseSecretArray(secretsArray)
+	} else if dataArray, ok := secretMap["data"].([]interface{}); ok {
+		secrets = parseSecretArray(dataArray)
+	} else if itemsArray, ok := secretMap["items"].([]interface{}); ok {
+		secrets = parseSecretArray(itemsArray)
+	} else {
+		// If the entire map appears to be secrets, treat each key as a secret path
+		for path, secretData := range secretMap {
+			if secretInfo, ok := secretData.(map[string]interface{}); ok {
+				secret := SecretListItem{
+					Path:      path,
+					Version:   getInt(secretInfo, "version"),
+					Owner:     getString(secretInfo, "owner"),
+					Usage:     getString(secretInfo, "usage"),
+					Source:    getString(secretInfo, "source"),
+					CreatedAt: getString(secretInfo, "created_at"),
+					UpdatedAt: getString(secretInfo, "updated_at"),
+				}
+				secrets = append(secrets, secret)
+			}
+		}
+	}
+	
+	return secrets
+}
+
+// parseSecretArray converts an array of secret objects to SecretListItem
+func parseSecretArray(secretsArray []interface{}) []SecretListItem {
+	var secrets []SecretListItem
+	
+	for _, item := range secretsArray {
+		if secretInfo, ok := item.(map[string]interface{}); ok {
+			secret := SecretListItem{
+				Path:      getString(secretInfo, "path"),
+				Version:   getInt(secretInfo, "version"),
+				Owner:     getString(secretInfo, "owner"),
+				Usage:     getString(secretInfo, "usage"),
+				Source:    getString(secretInfo, "source"),
+				CreatedAt: getString(secretInfo, "created_at"),
+				UpdatedAt: getString(secretInfo, "updated_at"),
+			}
+			secrets = append(secrets, secret)
+		}
+	}
+	
+	return secrets
+}
+
+// getMapKeys returns the keys of a map for debugging
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Helper functions to safely extract values from map
+func getString(data map[string]interface{}, key string) string {
+	if val, ok := data[key]; ok {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return ""
+}
+
+func getBool(data map[string]interface{}, key string) bool {
+	if val, ok := data[key]; ok {
+		if b, ok := val.(bool); ok {
+			return b
+		}
+	}
+	return false
+}
+
+func getStringSlice(data map[string]interface{}, key string) []string {
+	if val, ok := data[key]; ok {
+		if slice, ok := val.([]interface{}); ok {
+			var result []string
+			for _, item := range slice {
+				if str, ok := item.(string); ok {
+					result = append(result, str)
+				}
+			}
+			return result
+		}
+	}
+	return []string{}
+}
+
+// Helper functions for rollout parsing
+func getRolloutPhase(status map[string]interface{}) string {
+	if status == nil {
+		return "Unknown"
+	}
+	
+	// Check for phase first
+	if phase := getString(status, "phase"); phase != "" {
+		return phase
+	}
+	
+	// Fallback to health status
+	if health := getString(status, "health"); health != "" {
+		return health
+	}
+	
+	return "Unknown"
+}
+
+func getRolloutReplicas(status map[string]interface{}) string {
+	if status == nil {
+		return "0/0"
+	}
+	
+	replicas := getInt(status, "replicas")
+	readyReplicas := getInt(status, "readyReplicas")
+	
+	return fmt.Sprintf("%d/%d", readyReplicas, replicas)
+}
+
+func getRolloutAge(metadata map[string]interface{}) string {
+	if metadata == nil {
+		return "Unknown"
+	}
+	
+	creationTimestamp := getString(metadata, "creationTimestamp")
+	if creationTimestamp == "" {
+		return "Unknown"
+	}
+	
+	// Parse the timestamp and calculate age
+	if t, err := time.Parse(time.RFC3339, creationTimestamp); err == nil {
+		duration := time.Since(t)
+		if duration.Hours() > 24 {
+			return fmt.Sprintf("%dd", int(duration.Hours()/24))
+		} else if duration.Hours() > 1 {
+			return fmt.Sprintf("%dh", int(duration.Hours()))
+		} else {
+			return fmt.Sprintf("%dm", int(duration.Minutes()))
+		}
+	}
+	
+	return "Unknown"
+}
+
+func getRolloutStrategy(spec map[string]interface{}) string {
+	if spec == nil {
+		return "Unknown"
+	}
+	
+	strategy, ok := spec["strategy"].(map[string]interface{})
+	if !ok {
+		return "Unknown"
+	}
+	
+	if _, hasCanary := strategy["canary"]; hasCanary {
+		return "Canary"
+	}
+	if _, hasBlueGreen := strategy["blueGreen"]; hasBlueGreen {
+		return "BlueGreen"
+	}
+	
+	return "Unknown"
+}
+
+func getRolloutRevision(metadata map[string]interface{}) string {
+	if metadata == nil {
+		return "0"
+	}
+	
+	// Get annotations
+	annotations, ok := metadata["annotations"].(map[string]interface{})
+	if !ok {
+		return "0"
+	}
+	
+	// Try to get revision from rollout.argoproj.io/revision annotation
+	if revision := getString(annotations, "rollout.argoproj.io/revision"); revision != "" {
+		return revision
+	}
+	
+	return "0"
+}
+
+func getInt(data map[string]interface{}, key string) int {
+	if val, ok := data[key]; ok {
+		switch v := val.(type) {
+		case int:
+			return v
+		case float64:
+			return int(v)
+		case string:
+			if i, err := fmt.Sscanf(v, "%d", new(int)); err == nil && i == 1 {
+				var result int
+				fmt.Sscanf(v, "%d", &result)
+				return result
+			}
+		}
+	}
+	return 0
+}
+
+func getRolloutImages(spec map[string]interface{}) map[string]string {
+	images := make(map[string]string)
+	
+	if spec == nil {
+		return images
+	}
+	
+	// Navigate through spec.template.spec.containers to find images
+	template, ok := spec["template"].(map[string]interface{})
+	if !ok {
+		return images
+	}
+	
+	templateSpec, ok := template["spec"].(map[string]interface{})
+	if !ok {
+		return images
+	}
+	
+	containers, ok := templateSpec["containers"].([]interface{})
+	if !ok {
+		return images
+	}
+	
+	for _, containerInterface := range containers {
+		container, ok := containerInterface.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		
+		name := getString(container, "name")
+		image := getString(container, "image")
+		
+		if name != "" && image != "" {
+			images[name] = image
+		}
+	}
+	
+	return images
+}
+
+// JWT client/server configuration structures
+type JWTClientConfig struct {
+	Platform      string `json:"platform"`
+	Environment   string `json:"environment"`
+	Team          string `json:"team"`
+	Path          string `json:"path"`
+	Owner         string `json:"owner"`
+	LocalName     string `json:"localName"`
+	TargetService string `json:"targetService"`
+	Secret        string `json:"secret"`
+}
+
+type JWTServerConfig struct {
+	Platform      string `json:"platform"`
+	Environment   string `json:"environment"`
+	Team          string `json:"team"`
+	Path          string `json:"path"`
+	Owner         string `json:"owner"`
+	LocalName     string `json:"localName"`
+	ServiceName   string `json:"serviceName"`
+	ClientName    string `json:"clientName"`
+	ClientSecret  string `json:"clientSecret"`
+}
+
+// CreateJWTClient creates a JWT client secret
+func (a *App) CreateJWTClient(config JWTClientConfig) error {
+	if config.Path == "" || config.Owner == "" || config.LocalName == "" || 
+	   config.TargetService == "" || config.Secret == "" {
+		return fmt.Errorf("all fields are required for JWT client creation")
+	}
+
+	// Build yak command
+	args := []string{"secret", "jwt", "client", "--path", config.Path, "--owner", config.Owner,
+		"--local-name", config.LocalName, "--target-service", config.TargetService, 
+		"--secret", config.Secret}
+	
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+
+	// Execute yak secret jwt client
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing JWT client command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create JWT client secret: %w", err)
+	}
+
+	return nil
+}
+
+// CreateJWTServer creates a JWT server secret
+func (a *App) CreateJWTServer(config JWTServerConfig) error {
+	if config.Path == "" || config.Owner == "" || config.LocalName == "" || 
+	   config.ServiceName == "" || config.ClientName == "" || config.ClientSecret == "" {
+		return fmt.Errorf("all fields are required for JWT server creation")
+	}
+
+	// Build yak command
+	args := []string{"secret", "jwt", "server", "--path", config.Path, "--owner", config.Owner,
+		"--local-name", config.LocalName, "--service-name", config.ServiceName, 
+		"--client-name", config.ClientName, "--client-secret", config.ClientSecret}
+	
+	if config.Platform != "" {
+		args = append(args, "--platform", config.Platform)
+	}
+	if config.Environment != "" {
+		args = append(args, "--environment", config.Environment)
+	}
+	if config.Team != "" {
+		args = append(args, "--team", config.Team)
+	}
+
+	// Execute yak secret jwt server
+	cmd := exec.Command("../yak", args...)
+	fmt.Printf("DEBUG: Executing JWT server command: ../yak %v\n", args)
+	
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create JWT server secret: %w", err)
+	}
+
+	return nil
+}
