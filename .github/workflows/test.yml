@@ -49,4 +49,4 @@ jobs:
       - name: Build GUI
         run: |
           cd yak-gui
-          wails build --mode dev
+          wails build

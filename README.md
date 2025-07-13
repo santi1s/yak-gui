@@ -15,6 +15,7 @@ A comprehensive toolkit for managing ArgoCD applications, Argo Rollouts, and Vau
 
 ### Desktop GUI (`yak-gui`)
 - **Modern Interface**: Built with Wails v2 (Go + React)
+- **Cross-Platform**: Available for macOS, Linux, and Windows
 - **ArgoCD Dashboard**: Visual application management
 - **Rollouts Console**: Interactive rollout operations with image tracking
 - **Secrets Browser**: File explorer-style secret navigation
@@ -22,7 +23,7 @@ A comprehensive toolkit for managing ArgoCD applications, Argo Rollouts, and Vau
 
 ## 📦 Installation
 
-### Via Homebrew (Recommended)
+### Via Homebrew (Recommended - macOS)
 
 ```bash
 # Add the tap
@@ -31,12 +32,22 @@ brew tap santi1s/tools https://github.com/santi1s/homebrew-tools
 # Install CLI
 brew install yak
 
-# Install GUI
+# Install GUI (macOS only)
 brew install yak-gui
 
 # Or install both
 brew install yak yak-gui
 ```
+
+### Direct Download (All Platforms)
+
+Download pre-built binaries from the [releases page](https://github.com/santi1s/yak/releases):
+
+- **CLI**: Available for macOS, Linux, Windows
+- **GUI**: Available for macOS, Linux, Windows
+  - macOS: `yak-gui-darwin-universal.tar.gz` (.app bundle)
+  - Linux: `yak-gui-linux-amd64.tar.gz` (requires GTK3)
+  - Windows: `yak-gui-windows-amd64.zip` (.exe)
 
 ### Via Docker
 

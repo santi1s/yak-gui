@@ -11,12 +11,58 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-release:
-    runs-on: macos-latest
+  build-cli:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
-    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Build yak CLI
+        run: |
+          # Build for multiple architectures
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o yak-darwin-amd64 ./cmd/yak
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o yak-darwin-arm64 ./cmd/yak
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o yak-linux-amd64 ./cmd/yak
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o yak-windows-amd64.exe ./cmd/yak
+
+      - name: Create CLI Archives
+        run: |
+          tar -czf yak-darwin-amd64.tar.gz yak-darwin-amd64
+          tar -czf yak-darwin-arm64.tar.gz yak-darwin-arm64
+          tar -czf yak-linux-amd64.tar.gz yak-linux-amd64
+          zip yak-windows-amd64.zip yak-windows-amd64.exe
+
+      - name: Upload CLI Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-binaries
+          path: |
+            yak-*.tar.gz
+            yak-*.zip
+
+  build-gui:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin/amd64,darwin/arm64
+            name: darwin
+          - os: ubuntu-latest
+            platform: linux/amd64
+            name: linux
+          - os: windows-latest
+            platform: windows/amd64
+            name: windows
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,33 +80,70 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Build yak CLI
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          # Build for multiple architectures
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o yak-darwin-amd64 ./cmd/yak
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o yak-darwin-arm64 ./cmd/yak
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o yak-linux-amd64 ./cmd/yak
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install frontend dependencies
+        run: |
+          cd yak-gui/frontend
+          npm ci
 
       - name: Build Wails GUI
         run: |
           cd yak-gui
-          wails build --platform darwin/amd64,darwin/arm64
-          
-      - name: Create Archives
+          wails build --platform ${{ matrix.platform }}
+
+      - name: Create GUI Archives (macOS)
+        if: matrix.name == 'darwin'
         run: |
-          # CLI archives
-          tar -czf yak-darwin-amd64.tar.gz yak-darwin-amd64
-          tar -czf yak-darwin-arm64.tar.gz yak-darwin-arm64
-          tar -czf yak-linux-amd64.tar.gz yak-linux-amd64
-          
-          # GUI archives
           cd yak-gui/build/bin
-          tar -czf ../../../yak-gui-darwin-amd64.tar.gz yak-gui.app
-          cd ../../..
+          tar -czf ../../../yak-gui-darwin-universal.tar.gz yak-gui.app
+
+      - name: Create GUI Archives (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          cd yak-gui/build/bin
+          tar -czf ../../../yak-gui-linux-amd64.tar.gz yak-gui
+
+      - name: Create GUI Archives (Windows)
+        if: matrix.name == 'windows'
+        run: |
+          cd yak-gui/build/bin
+          Compress-Archive -Path yak-gui.exe -DestinationPath ../../../yak-gui-windows-amd64.zip
+
+      - name: Upload GUI Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-${{ matrix.name }}
+          path: yak-gui-*
+
+  release:
+    needs: [build-cli, build-gui]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CLI Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-binaries
+
+      - name: Download GUI Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gui-*
+          merge-multiple: true
 
       - name: Calculate Checksums
         run: |
-          shasum -a 256 *.tar.gz > checksums.txt
+          shasum -a 256 *.tar.gz *.zip > checksums.txt || true
           cat checksums.txt
 
       - name: Set up Docker Buildx
@@ -95,7 +178,9 @@ jobs:
         with:
           files: |
             yak-*.tar.gz
+            yak-*.zip
             yak-gui-*.tar.gz
+            yak-gui-*.zip
             checksums.txt
           generate_release_notes: true
           draft: false
