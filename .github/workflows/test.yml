@@ -6,8 +6,85 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  GO_VERSION: '1.21'
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  diff:
+    name: Get the list of impacted packages
+    runs-on: ubuntu-latest
+    outputs:
+      package_list: ${{ steps.create_package_list.outputs.package_list }}
+      has_go_changes: ${{ steps.create_package_list.outputs.has_go_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Get all Go files that have changed
+        id: changed-files-go
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **/*.go
+            go.mod
+            go.sum
+
+      - name: Create the list of packages to check
+        id: create_package_list
+        run: |
+          files="${{ steps.changed-files-go.outputs.all_modified_files }}"
+
+          if [[ -z "$files" ]]; then
+            echo "package_list=[]" >> "${GITHUB_OUTPUT}"
+            echo "has_go_changes=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "has_go_changes=true" >> "${GITHUB_OUTPUT}"
+
+          # Check if go.mod or go.sum are in the modified files
+          if echo "$files" | grep -q -E "(go\.mod|go\.sum)"; then
+            echo "go.mod or go.sum detected in modified files, testing all packages"
+            # Find all directories containing .go files
+            dirs_list=$(find . -name "*.go" -type f -print0 | xargs -0 -n 1 dirname | sort -u | sed 's|^\./||')
+          else
+            # Only test the *.go files that have changed
+            dirs_list=$(echo "$files" | xargs -n 1 dirname | sort -u)
+          fi
+
+          json_output=$(echo "$dirs_list" | jq -Rsc 'split("\n") | map(select(length > 0))')
+          echo "Formatted JSON output: \"$json_output\""
+          echo "package_list=${json_output}" >> "${GITHUB_OUTPUT}"
+
   test-cli:
+    name: Execute unit tests
+    needs: diff
+    if: needs.diff.outputs.has_go_changes == 'true' && needs.diff.outputs.package_list != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.diff.outputs.package_list) }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      - name: Run tests for ${{ matrix.package }}
+        run: go test -v -cover ./${{ matrix.package }}
+      
+  build-cli:
+    name: Build CLI
+    needs: diff
+    if: needs.diff.outputs.has_go_changes == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,15 +92,16 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
-      
-      - name: Run tests
-        run: go test ./...
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
       
       - name: Build CLI
         run: go build ./cmd/yak
 
   test-gui:
+    name: Test GUI build
+    needs: diff
+    if: needs.diff.outputs.has_go_changes == 'true' || contains(github.event.head_commit.modified, 'yak-gui/')
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,12 +109,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'yak-gui/frontend/package-lock.json'
       
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -50,3 +131,17 @@ jobs:
         run: |
           cd yak-gui
           wails build
+
+  outcome:
+    needs: [diff, test-cli, build-cli, test-gui]
+    name: "required tests passed"
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    timeout-minutes: 1
+    steps:
+      - name: Fail job on any previous error
+        if: ${{ contains(join(needs.*.result, ','), 'failure') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.setFailed('Some previous checks failed')
