@@ -45,7 +45,7 @@ dockers:
   - image_templates:
       - "ghcr.io/santi1s/yak:{{ .Version }}-amd64"
       - "ghcr.io/santi1s/yak:latest-amd64"
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.goreleaser
     goos: linux
     goarch: amd64
     use: buildx
@@ -57,7 +57,7 @@ dockers:
   - image_templates:
       - "ghcr.io/santi1s/yak:{{ .Version }}-arm64"
       - "ghcr.io/santi1s/yak:latest-arm64"
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.goreleaser
     goos: linux
     goarch: arm64
     use: buildx
