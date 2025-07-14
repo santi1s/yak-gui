@@ -1,7 +1,7 @@
 package kafka
 
 import (
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/constant"
 
 	"github.com/spf13/cobra"
 )

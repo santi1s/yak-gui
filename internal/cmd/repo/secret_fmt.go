@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	"github.com/spf13/cobra"
 )
 

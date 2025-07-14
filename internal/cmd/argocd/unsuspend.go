@@ -3,8 +3,8 @@ package argocd
 import (
 	"fmt"
 
-	"github.com/doctolib/yak/cli"
-	argocdhelper "github.com/doctolib/yak/internal/helper/argocd"
+	"github.com/santi1s/yak/cli"
+	argocdhelper "github.com/santi1s/yak/internal/helper/argocd"
 	"github.com/spf13/cobra"
 )
 

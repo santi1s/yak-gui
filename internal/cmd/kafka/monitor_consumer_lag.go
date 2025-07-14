@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"

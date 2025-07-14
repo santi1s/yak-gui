@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/teleport"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/teleport"
 	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v3"

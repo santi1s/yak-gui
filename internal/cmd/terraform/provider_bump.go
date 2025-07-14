@@ -9,7 +9,7 @@ import (
 	"regexp"
 
 	"github.com/Masterminds/semver"
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/spf13/cobra"
 )

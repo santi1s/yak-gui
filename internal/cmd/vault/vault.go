@@ -3,7 +3,7 @@ package vault
 import (
 	"os"
 
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/constant"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

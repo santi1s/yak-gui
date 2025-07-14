@@ -1,4 +1,4 @@
-module github.com/doctolib/yak
+module github.com/santi1s/yak
 
 go 1.24.0
 

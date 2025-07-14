@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/constant"
 	"github.com/hashicorp/go-tfe"
 	"github.com/spf13/cobra"
 )

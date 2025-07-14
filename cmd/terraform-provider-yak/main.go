@@ -5,8 +5,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/doctolib/yak/internal/constant"
-	"github.com/doctolib/yak/internal/provider"
+	"github.com/santi1s/yak/internal/constant"
+	"github.com/santi1s/yak/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

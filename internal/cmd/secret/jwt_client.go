@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 )

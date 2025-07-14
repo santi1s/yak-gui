@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/doctolib/yak/internal/cmd/secret"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/cmd/secret"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"

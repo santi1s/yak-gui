@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/constant"
 	"github.com/hashicorp/go-tfe"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"

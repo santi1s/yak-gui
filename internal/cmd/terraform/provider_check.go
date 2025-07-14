@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

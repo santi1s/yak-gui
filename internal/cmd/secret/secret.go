@@ -10,9 +10,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/constant"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/constant"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/vault/api"
 	"sigs.k8s.io/yaml"
 

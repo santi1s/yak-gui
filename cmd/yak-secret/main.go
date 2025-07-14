@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/doctolib/yak/internal/cmd/secret"
+	"github.com/santi1s/yak/internal/cmd/secret"
 )
 
 // entrypoint of yak-secret binary

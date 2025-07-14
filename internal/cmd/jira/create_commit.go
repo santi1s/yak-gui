@@ -10,8 +10,8 @@ import (
 	git "github.com/go-git/go-git/v5"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/doctolib/yak/cli"
-	helper "github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	helper "github.com/santi1s/yak/internal/helper"
 
 	"github.com/spf13/cobra"
 )

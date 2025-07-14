@@ -8,7 +8,7 @@ import (
 
 	"github.com/argoproj/argo-cd/v2/pkg/apiclient/application"
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
-	argocdhelper "github.com/doctolib/yak/internal/helper/argocd"
+	argocdhelper "github.com/santi1s/yak/internal/helper/argocd"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )

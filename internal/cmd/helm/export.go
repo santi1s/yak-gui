@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 )
 
 const (

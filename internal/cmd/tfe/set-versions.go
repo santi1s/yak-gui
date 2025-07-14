@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 

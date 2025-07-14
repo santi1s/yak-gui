@@ -1,9 +1,9 @@
 package rollouts
 
 import (
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/constant"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/constant"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/spf13/cobra"
 )
 

@@ -6,8 +6,8 @@ import (
 	"path"
 	"sort"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/spf13/cobra"
 )

@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	jira "github.com/andygrunwald/go-jira"
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/constant"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"

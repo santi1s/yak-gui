@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"

@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	c "github.com/fatih/color"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/doctolib/yak/internal/cmd/root"
+	"github.com/santi1s/yak/internal/cmd/root"
 )
 
 // entrypoint of yak binary

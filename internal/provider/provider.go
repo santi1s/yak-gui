@@ -7,7 +7,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"

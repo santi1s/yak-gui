@@ -7,9 +7,9 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/argoproj/argo-cd/v2/pkg/apiclient/application"
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
-	argocdhelper "github.com/doctolib/yak/internal/helper/argocd"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
+	argocdhelper "github.com/santi1s/yak/internal/helper/argocd"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

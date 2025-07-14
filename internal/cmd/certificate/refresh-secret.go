@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	repoSecretHelper "github.com/doctolib/yak/internal/cmd/repo"
-	secretHelper "github.com/doctolib/yak/internal/cmd/secret"
-	"github.com/doctolib/yak/internal/helper"
+	repoSecretHelper "github.com/santi1s/yak/internal/cmd/repo"
+	secretHelper "github.com/santi1s/yak/internal/cmd/secret"
+	"github.com/santi1s/yak/internal/helper"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

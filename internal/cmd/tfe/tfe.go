@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/constant"
 	gotfe "github.com/hashicorp/go-tfe"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

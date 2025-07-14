@@ -3,7 +3,7 @@ package argocd
 import (
 	"testing"
 
-	argocdhelper "github.com/doctolib/yak/internal/helper/argocd"
+	argocdhelper "github.com/santi1s/yak/internal/helper/argocd"
 	"github.com/stretchr/testify/assert"
 )
 

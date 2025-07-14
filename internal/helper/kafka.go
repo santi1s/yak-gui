@@ -13,7 +13,7 @@ import (
 	"time"
 
 	mskSigner "github.com/aws/aws-msk-iam-sasl-signer-go/signer"
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/IBM/sarama"

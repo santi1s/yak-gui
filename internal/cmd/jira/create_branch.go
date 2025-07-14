@@ -9,10 +9,10 @@ import (
 	c "github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	git "github.com/go-git/go-git/v5"
 
-	helper "github.com/doctolib/yak/internal/helper"
+	helper "github.com/santi1s/yak/internal/helper"
 	"github.com/spf13/cobra"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	"github.com/stretchr/testify/assert"
 )
 

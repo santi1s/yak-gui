@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/constant"
 	"github.com/google/go-github/v73/github"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

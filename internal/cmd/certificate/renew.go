@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"

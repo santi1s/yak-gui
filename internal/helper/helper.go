@@ -21,8 +21,8 @@ import (
 	"github.com/go-ini/ini"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/constant"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"

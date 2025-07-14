@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/doctolib/yak/internal/cmd/aws"
+	"github.com/santi1s/yak/internal/cmd/aws"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )

@@ -3,9 +3,9 @@ package aws
 import (
 	"strings"
 
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/helper"
-	"github.com/doctolib/yak/internal/teleport"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/helper"
+	"github.com/santi1s/yak/internal/teleport"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

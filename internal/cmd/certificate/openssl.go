@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	secretHelper "github.com/doctolib/yak/internal/cmd/secret"
-	"github.com/doctolib/yak/internal/helper"
+	secretHelper "github.com/santi1s/yak/internal/cmd/secret"
+	"github.com/santi1s/yak/internal/helper"
 	log "github.com/sirupsen/logrus"
 )
 

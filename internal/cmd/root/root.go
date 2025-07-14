@@ -3,22 +3,22 @@ package root
 import (
 	"os"
 
-	"github.com/doctolib/yak/internal/cmd/argocd"
-	"github.com/doctolib/yak/internal/cmd/aws"
-	"github.com/doctolib/yak/internal/cmd/certificate"
-	"github.com/doctolib/yak/internal/cmd/couchbase"
-	"github.com/doctolib/yak/internal/cmd/github"
-	"github.com/doctolib/yak/internal/cmd/helm"
-	"github.com/doctolib/yak/internal/cmd/jira"
-	"github.com/doctolib/yak/internal/cmd/kafka"
-	"github.com/doctolib/yak/internal/cmd/repo"
-	"github.com/doctolib/yak/internal/cmd/rollouts"
-	"github.com/doctolib/yak/internal/cmd/secret"
-	"github.com/doctolib/yak/internal/cmd/terraform"
-	"github.com/doctolib/yak/internal/cmd/tfe"
-	"github.com/doctolib/yak/internal/cmd/vault"
-	"github.com/doctolib/yak/internal/cmd/version"
-	"github.com/doctolib/yak/internal/constant"
+	"github.com/santi1s/yak/internal/cmd/argocd"
+	"github.com/santi1s/yak/internal/cmd/aws"
+	"github.com/santi1s/yak/internal/cmd/certificate"
+	"github.com/santi1s/yak/internal/cmd/couchbase"
+	"github.com/santi1s/yak/internal/cmd/github"
+	"github.com/santi1s/yak/internal/cmd/helm"
+	"github.com/santi1s/yak/internal/cmd/jira"
+	"github.com/santi1s/yak/internal/cmd/kafka"
+	"github.com/santi1s/yak/internal/cmd/repo"
+	"github.com/santi1s/yak/internal/cmd/rollouts"
+	"github.com/santi1s/yak/internal/cmd/secret"
+	"github.com/santi1s/yak/internal/cmd/terraform"
+	"github.com/santi1s/yak/internal/cmd/tfe"
+	"github.com/santi1s/yak/internal/cmd/vault"
+	"github.com/santi1s/yak/internal/cmd/version"
+	"github.com/santi1s/yak/internal/constant"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ var rootCmd = &cobra.Command{
 	Use:   constant.CliName,
 	Short: constant.CliName + " CLI",
 	Long: `CLI for tools maintained by SRE Green team.
-More information on https://github.com/doctolib/yak`,
+More information on https://github.com/santi1s/yak`,
 	PersistentPreRun: persistentPreRun,
 }
 

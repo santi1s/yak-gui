@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/smithy-go"
-	"github.com/doctolib/yak/cli"
+	"github.com/santi1s/yak/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

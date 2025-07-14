@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"github.com/doctolib/yak/cli"
-	"github.com/doctolib/yak/internal/teleport"
+	"github.com/santi1s/yak/cli"
+	"github.com/santi1s/yak/internal/teleport"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/helper"
 
 	"github.com/hashicorp/vault/api"
 

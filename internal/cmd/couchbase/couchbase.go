@@ -1,8 +1,8 @@
 package couchbase
 
 import (
-	"github.com/doctolib/yak/internal/constant"
-	"github.com/doctolib/yak/internal/helper"
+	"github.com/santi1s/yak/internal/constant"
+	"github.com/santi1s/yak/internal/helper"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	kubernetes "k8s.io/client-go/kubernetes"
