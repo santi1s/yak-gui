@@ -709,8 +709,6 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 	
 
 	// Parse JSON output - yak secret may return various formats
-	outputStr := string(output)
-	
 	// First try to parse as an array directly
 	var secrets []SecretListItem
 	if err := json.Unmarshal(output, &secrets); err != nil {
