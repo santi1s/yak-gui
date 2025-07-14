@@ -190,7 +190,7 @@ const RolloutCard: React.FC<{
 
   return (
     <>
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors">
+      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors min-w-0">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
             {getStatusIcon()}
@@ -235,27 +235,57 @@ const RolloutCard: React.FC<{
               <PhotoIcon className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-medium text-slate-300">Container Images</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {Object.entries(rollout.images).map(([container, image]) => {
-                // Extract just the image name and tag from the full path
+                // Split by registry/path and image:tag
                 const imageParts = image.split('/');
                 const imageNameWithTag = imageParts[imageParts.length - 1];
-                const [imageName, imageTag] = imageNameWithTag.split(':');
+                const registry = imageParts.length > 1 ? imageParts.slice(0, -1).join('/') : '';
+                
+                // Handle both tag and digest formats
+                let imageName, version;
+                if (imageNameWithTag.includes('@sha256:')) {
+                  // Handle digest format: image@sha256:abc123...
+                  [imageName, version] = imageNameWithTag.split('@');
+                } else if (imageNameWithTag.includes(':')) {
+                  // Handle tag format: image:tag
+                  [imageName, version] = imageNameWithTag.split(':');
+                } else {
+                  imageName = imageNameWithTag;
+                  version = 'latest';
+                }
+                
+                // Truncate long SHA256 digests for display
+                const displayVersion = version && version.startsWith('sha256:') 
+                  ? `sha256:${version.slice(7, 19)}...` 
+                  : version;
                 
                 return (
-                  <div key={container} className="flex flex-col space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-400 font-medium">{container}:</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-white font-mono bg-slate-600 px-2 py-1 rounded">
-                        {imageName}
-                      </span>
-                      {imageTag && (
-                        <span className="text-xs text-purple-300 bg-purple-900 px-2 py-1 rounded">
-                          {imageTag}
+                  <div key={container} className="flex flex-col space-y-2">
+                    <span className="text-xs text-slate-400 font-medium">{container}:</span>
+                    <div className="flex flex-col space-y-1">
+                      {registry && (
+                        <span className="text-xs text-slate-500 font-mono break-all">
+                          {registry}/
                         </span>
                       )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-white font-mono bg-slate-600 px-2 py-1 rounded break-all">
+                          {imageName}
+                        </span>
+                        {version && (
+                          <span 
+                            className={`text-xs px-2 py-1 rounded font-mono break-all ${
+                              version.startsWith('sha256:') 
+                                ? 'text-orange-300 bg-orange-900' 
+                                : 'text-purple-300 bg-purple-900'
+                            }`}
+                            title={version} // Show full version on hover
+                          >
+                            {displayVersion}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -598,7 +628,7 @@ const Rollouts: React.FC = () => {
             <p className="text-slate-400">No rollouts found</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRollouts.map((rollout, index) => (
               <RolloutCard
                 key={rollout?.name || `rollout-${index}`}

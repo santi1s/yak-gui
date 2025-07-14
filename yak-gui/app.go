@@ -11,6 +11,24 @@ import (
 	"time"
 )
 
+// findYakExecutable searches for yak executable in common paths
+func findYakExecutable() string {
+	// Common paths where yak might be installed
+	paths := []string{
+		"/opt/homebrew/bin/yak",    // Homebrew on Apple Silicon
+		"/usr/local/bin/yak",       // Homebrew on Intel Macs
+		"/usr/bin/yak",             // System installation
+		"yak",                      // Try PATH first
+	}
+	
+	for _, path := range paths {
+		if _, err := exec.LookPath(path); err == nil {
+			return path
+		}
+	}
+	return "yak" // fallback to PATH
+}
+
 // Simple test function to see if Wails generates any bindings
 func Greet(name string) string {
 	return fmt.Sprintf("Hello %s from Wails!", name)
@@ -201,34 +219,17 @@ func (a *App) LoginToArgoCD(config ArgoConfig) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
-	fmt.Printf("DEBUG: Executing login command: yak %v\n", args)
 	
 	// Run the command and wait for completion
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to login to ArgoCD: %w", err)
 	}
 
-	fmt.Printf("DEBUG: Login command completed successfully\n")
 	return nil
 }
 
-// TestSimpleApps returns a simple version of ArgoApp to test
-func (a *App) TestSimpleApps() []ArgoApp {
-	return []ArgoApp{
-		{
-			AppName: "test-app-1",
-			Health:  "Healthy",
-			Sync:    "Synced",
-		},
-		{
-			AppName: "test-app-2", 
-			Health:  "Degraded",
-			Sync:    "OutOfSync",
-		},
-	}
-}
 
 // GetArgoApps gets all ArgoCD applications for a project by calling the yak CLI
 func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
@@ -249,10 +250,9 @@ func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
 	// Add debugging
-	fmt.Printf("DEBUG: Executing command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -266,37 +266,31 @@ func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
 		return nil, fmt.Errorf("failed to execute yak command: %w", err)
 	}
 	
-	fmt.Printf("DEBUG: Command output length: %d bytes\n", len(output))
 
 	// Check if output looks like HTML (SAML redirect)
 	outputStr := string(output)
 	if strings.Contains(strings.ToLower(outputStr), "<!doctype") || 
 	   strings.Contains(strings.ToLower(outputStr), "<html") ||
 	   strings.Contains(strings.ToLower(outputStr), "saml") {
-		fmt.Printf("DEBUG: Detected HTML/SAML response instead of JSON\n")
 		return nil, fmt.Errorf("authentication required: received SAML redirect instead of JSON data. Please authenticate with ArgoCD first using 'yak argocd login' or try refreshing")
 	}
 
 	// Parse JSON output from your CLI
 	var statusData map[string]interface{}
 	if err := json.Unmarshal(output, &statusData); err != nil {
-		fmt.Printf("DEBUG: Failed to parse JSON: %v\n", err)
 		truncatedOutput := outputStr
 		if len(outputStr) > 200 {
 			truncatedOutput = outputStr[:200]
 		}
-		fmt.Printf("DEBUG: First 200 chars of output: %s\n", truncatedOutput)
 		return nil, fmt.Errorf("failed to parse yak output: %w", err)
 	}
 	
-	fmt.Printf("DEBUG: Parsed %d applications from JSON\n", len(statusData))
 
 	// Convert to GUI format
 	var apps []ArgoApp
 	for appName, appDataInterface := range statusData {
 		appData, ok := appDataInterface.(map[string]interface{})
 		if !ok {
-			fmt.Printf("DEBUG: Skipping %s - not a map\n", appName)
 			continue
 		}
 
@@ -314,11 +308,9 @@ func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
 			app.AppName = appName
 		}
 		
-		fmt.Printf("DEBUG: Processed app: %s (Health: %s, Sync: %s)\n", app.AppName, app.Health, app.Sync)
 		apps = append(apps, app)
 	}
 
-	fmt.Printf("DEBUG: Returning %d apps\n", len(apps))
 
 	// Sort by name for consistent ordering
 	sort.Slice(apps, func(i, j int) bool {
@@ -346,7 +338,7 @@ func (a *App) SyncArgoApp(config ArgoConfig, appName string, prune, dryRun bool)
 	}
 
 	// Execute yak argocd sync
-	cmd := exec.Command("yak", args...)
+	cmd := exec.Command(findYakExecutable(), args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to sync application %s: %w", appName, err)
 	}
@@ -366,7 +358,7 @@ func (a *App) RefreshArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd refresh
-	cmd := exec.Command("yak", args...)
+	cmd := exec.Command(findYakExecutable(), args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to refresh application %s: %w", appName, err)
 	}
@@ -386,7 +378,7 @@ func (a *App) SuspendArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd suspend
-	cmd := exec.Command("yak", args...)
+	cmd := exec.Command(findYakExecutable(), args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to suspend application %s: %w", appName, err)
 	}
@@ -406,7 +398,7 @@ func (a *App) UnsuspendArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd unsuspend
-	cmd := exec.Command("yak", args...)
+	cmd := exec.Command(findYakExecutable(), args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to unsuspend application %s: %w", appName, err)
 	}
@@ -431,9 +423,8 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
-	fmt.Printf("DEBUG: Executing rollouts list command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -446,7 +437,6 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 		return nil, fmt.Errorf("failed to execute yak rollouts list: %w", err)
 	}
 	
-	fmt.Printf("DEBUG: Rollouts list output length: %d bytes\n", len(output))
 
 	// Check if output looks like HTML (authentication issues)
 	outputStr := string(output)
@@ -460,12 +450,10 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 		Items []map[string]interface{} `json:"items"`
 	}
 	if err := json.Unmarshal(output, &listResponse); err != nil {
-		fmt.Printf("DEBUG: Failed to parse rollouts JSON: %v\n", err)
 		truncatedOutput := outputStr
 		if len(outputStr) > 200 {
 			truncatedOutput = outputStr[:200]
 		}
-		fmt.Printf("DEBUG: First 200 chars of rollouts output: %s\n", truncatedOutput)
 		return nil, fmt.Errorf("failed to parse yak rollouts output: %w", err)
 	}
 
@@ -494,7 +482,6 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 		rollouts = append(rollouts, rollout)
 	}
 
-	fmt.Printf("DEBUG: Parsed %d rollouts from JSON\n", len(rollouts))
 	return rollouts, nil
 }
 
@@ -517,9 +504,8 @@ func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*Ro
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
-	fmt.Printf("DEBUG: Executing rollouts status command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -579,8 +565,7 @@ func (a *App) PromoteRollout(config KubernetesConfig, rolloutName string, full b
 	}
 
 	// Execute yak rollouts promote
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts promote command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to promote rollout %s: %w", rolloutName, err)
@@ -605,8 +590,7 @@ func (a *App) PauseRollout(config KubernetesConfig, rolloutName string) error {
 	}
 
 	// Execute yak rollouts pause
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts pause command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to pause rollout %s: %w", rolloutName, err)
@@ -631,8 +615,7 @@ func (a *App) AbortRollout(config KubernetesConfig, rolloutName string) error {
 	}
 
 	// Execute yak rollouts abort
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts abort command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to abort rollout %s: %w", rolloutName, err)
@@ -657,8 +640,7 @@ func (a *App) RestartRollout(config KubernetesConfig, rolloutName string) error 
 	}
 
 	// Execute yak rollouts restart
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts restart command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to restart rollout %s: %w", rolloutName, err)
@@ -689,8 +671,7 @@ func (a *App) SetRolloutImage(config KubernetesConfig, rolloutName, image, conta
 	}
 
 	// Execute yak rollouts set-image
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts set-image command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to set image for rollout %s: %w", rolloutName, err)
@@ -720,9 +701,8 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
-	fmt.Printf("DEBUG: Executing secret list command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -735,7 +715,6 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 		return nil, fmt.Errorf("failed to execute yak secret list: %w", err)
 	}
 	
-	fmt.Printf("DEBUG: Secret list output length: %d bytes\n", len(output))
 
 	// Parse JSON output - yak secret may return various formats
 	outputStr := string(output)
@@ -747,28 +726,17 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 		var secretMap map[string]interface{}
 		if mapErr := json.Unmarshal(output, &secretMap); mapErr != nil {
 			// If both fail, log the output for debugging
-			fmt.Printf("DEBUG: Failed to parse secrets JSON as array: %v\n", err)
-			fmt.Printf("DEBUG: Failed to parse secrets JSON as map: %v\n", mapErr)
 			truncatedOutput := outputStr
 			if len(outputStr) > 200 {
 				truncatedOutput = outputStr[:200]
 			}
-			fmt.Printf("DEBUG: First 200 chars of secret output: %s\n", truncatedOutput)
 			return nil, fmt.Errorf("failed to parse yak secret output: %w", err)
 		}
 		
 		// If it's a map, try to extract secrets from it
-		fmt.Printf("DEBUG: Parsing as map, keys: %v\n", getMapKeys(secretMap))
 		secrets = parseSecretsFromMap(secretMap)
-		fmt.Printf("DEBUG: Extracted %d secrets from map\n", len(secrets))
 	}
 
-	fmt.Printf("DEBUG: Final result - returning %d secrets\n", len(secrets))
-	for i, secret := range secrets {
-		if i < 3 { // Log first few secrets for debugging
-			fmt.Printf("DEBUG: Secret %d: path=%s, owner=%s, version=%d\n", i, secret.Path, secret.Owner, secret.Version)
-		}
-	}
 	return secrets, nil
 }
 
@@ -797,9 +765,8 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "yak", args...)
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
 	
-	fmt.Printf("DEBUG: Executing secret get command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -851,8 +818,7 @@ func (a *App) CreateSecret(config SecretConfig, path, owner, usage, source strin
 	}
 
 	// Execute yak secret create
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing secret create command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create secret %s: %w", path, err)
@@ -885,8 +851,7 @@ func (a *App) UpdateSecret(config SecretConfig, path string, data map[string]str
 	}
 
 	// Execute yak secret update
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing secret update command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to update secret %s: %w", path, err)
@@ -917,8 +882,7 @@ func (a *App) DeleteSecret(config SecretConfig, path string, version int) error 
 	}
 
 	// Execute yak secret delete
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing secret delete command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete secret %s: %w", path, err)
@@ -933,7 +897,6 @@ func parseSecretsFromMap(secretMap map[string]interface{}) []SecretListItem {
 	
 	// Check if it has a "keys" array (the actual format returned by yak secret list)
 	if keysArray, ok := secretMap["keys"].([]interface{}); ok {
-		fmt.Printf("DEBUG: Found keys array with %d items\n", len(keysArray))
 		for _, keyItem := range keysArray {
 			if keyStr, ok := keyItem.(string); ok {
 				// Create a basic SecretListItem with just the path
@@ -1245,8 +1208,7 @@ func (a *App) CreateJWTClient(config JWTClientConfig) error {
 	}
 
 	// Execute yak secret jwt client
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing JWT client command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create JWT client secret: %w", err)
@@ -1278,8 +1240,7 @@ func (a *App) CreateJWTServer(config JWTServerConfig) error {
 	}
 
 	// Execute yak secret jwt server
-	cmd := exec.Command("yak", args...)
-	fmt.Printf("DEBUG: Executing JWT server command: yak %v\n", args)
+	cmd := exec.Command(findYakExecutable(), args...)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create JWT server secret: %w", err)
