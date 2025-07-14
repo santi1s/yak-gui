@@ -1,0 +1,137 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-gui:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin/amd64,darwin/arm64
+            name: darwin
+          - os: ubuntu-latest
+            platform: linux/amd64
+            name: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+          # Create symlink for webkit2gtk-4.0 -> webkit2gtk-4.1 compatibility
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+          # Verify the symlink works
+          pkg-config --exists webkit2gtk-4.0 && echo "webkit2gtk-4.0 available" || echo "webkit2gtk-4.0 not found"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          rm -rf node_modules package-lock.json
+          npm install --no-optional
+          npm install @rollup/rollup-linux-x64-gnu --save-optional
+
+      - name: Build Wails GUI
+        run: |
+          wails build --platform ${{ matrix.platform }}
+
+      - name: Debug build output
+        run: |
+          echo "=== Build directory structure ==="
+          find . -name "*.app" -o -name "yak-gui" -o -name "yak-gui.exe" 2>/dev/null || true
+          echo "=== build contents ==="
+          ls -la build/ 2>/dev/null || echo "build directory not found"
+          echo "=== build/bin contents ==="
+          ls -la build/bin/ 2>/dev/null || echo "bin directory not found"
+
+      - name: Create GUI Archives (macOS)
+        if: matrix.name == 'darwin'
+        run: |
+          # Wails creates separate arch-specific .app bundles, package them together
+          if [ -d "build/bin/yak-gui-amd64.app" ] && [ -d "build/bin/yak-gui-arm64.app" ]; then
+            # Create universal binary by combining both architectures
+            mkdir -p build/bin/yak-gui.app/Contents/MacOS
+            lipo -create \
+              build/bin/yak-gui-amd64.app/Contents/MacOS/yak-gui \
+              build/bin/yak-gui-arm64.app/Contents/MacOS/yak-gui \
+              -output build/bin/yak-gui.app/Contents/MacOS/yak-gui
+            # Copy other resources from one of the apps (they should be identical)
+            cp -r build/bin/yak-gui-amd64.app/Contents/Info.plist build/bin/yak-gui.app/Contents/
+            cp -r build/bin/yak-gui-amd64.app/Contents/Resources build/bin/yak-gui.app/Contents/ 2>/dev/null || true
+            tar -czf yak-gui-darwin-universal.tar.gz -C build/bin yak-gui.app
+          elif [ -d "build/bin/yak-gui-amd64.app" ]; then
+            # Only amd64 build available
+            tar -czf yak-gui-darwin-universal.tar.gz -C build/bin yak-gui-amd64.app
+          elif [ -d "build/bin/yak-gui-arm64.app" ]; then
+            # Only arm64 build available  
+            tar -czf yak-gui-darwin-universal.tar.gz -C build/bin yak-gui-arm64.app
+          else
+            echo "No macOS .app bundles found"
+            exit 1
+          fi
+
+      - name: Create GUI Archives (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          if [ -f "build/bin/yak-gui" ]; then
+            tar -czf yak-gui-linux-amd64.tar.gz -C build/bin yak-gui
+          else
+            echo "No Linux binary found at build/bin/yak-gui"
+            exit 1
+          fi
+
+      - name: Upload GUI Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-${{ matrix.name }}
+          path: yak-gui-*
+
+  release:
+    needs: [build-gui]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download GUI Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gui-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            yak-gui-*.tar.gz
+            yak-gui-*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
