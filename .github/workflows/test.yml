@@ -58,10 +58,18 @@ jobs:
           fi
 
           # Filter out yak-gui directory as it's a Wails app, not a Go package
-          filtered_dirs=$(echo "$dirs_list" | grep -v "^yak-gui$" | grep -v "^yak-gui/")
-          json_output=$(echo "$filtered_dirs" | jq -Rsc 'split("\n") | map(select(length > 0))')
-          echo "Formatted JSON output: \"$json_output\""
-          echo "package_list=${json_output}" >> "${GITHUB_OUTPUT}"
+          filtered_dirs=$(echo "$dirs_list" | grep -v "^yak-gui$" | grep -v "^yak-gui/" || true)
+          
+          # Handle case where all directories are filtered out
+          if [[ -z "$filtered_dirs" ]]; then
+            echo "All changed Go files are in excluded directories (yak-gui), no packages to test"
+            echo "package_list=[]" >> "${GITHUB_OUTPUT}"
+            echo "has_go_changes=false" >> "${GITHUB_OUTPUT}"
+          else
+            json_output=$(echo "$filtered_dirs" | jq -Rsc 'split("\n") | map(select(length > 0))')
+            echo "Formatted JSON output: \"$json_output\""
+            echo "package_list=${json_output}" >> "${GITHUB_OUTPUT}"
+          fi
 
   test-cli:
     name: Execute unit tests
