@@ -80,15 +80,6 @@ const SecretCard: React.FC<{
   onDelete: (secret: SecretListItem) => void;
   onNavigate: (path: string) => void;
 }> = ({ secret, onView, onEdit, onDelete, onNavigate }) => {
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'Unknown';
-    try {
-      return new Date(dateStr).toLocaleDateString();
-    } catch {
-      return 'Unknown';
-    }
-  };
-
   const getSourceColor = (source: string) => {
     switch (source.toLowerCase()) {
       case 'manual': return 'bg-blue-600';
