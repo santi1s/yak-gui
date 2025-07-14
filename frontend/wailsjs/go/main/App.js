@@ -18,8 +18,20 @@ export function CreateSecret(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['CreateSecret'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function DeleteEnvironmentProfile(arg1) {
+  return window['go']['main']['App']['DeleteEnvironmentProfile'](arg1);
+}
+
 export function DeleteSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteSecret'](arg1, arg2, arg3);
+}
+
+export function GetAWSProfiles() {
+  return window['go']['main']['App']['GetAWSProfiles']();
+}
+
+export function GetAppVersion() {
+  return window['go']['main']['App']['GetAppVersion']();
 }
 
 export function GetArgoApps(arg1) {
@@ -32,6 +44,18 @@ export function GetArgoCDServerFromProfile() {
 
 export function GetCurrentAWSProfile() {
   return window['go']['main']['App']['GetCurrentAWSProfile']();
+}
+
+export function GetEnvironmentProfiles() {
+  return window['go']['main']['App']['GetEnvironmentProfiles']();
+}
+
+export function GetEnvironmentVariables() {
+  return window['go']['main']['App']['GetEnvironmentVariables']();
+}
+
+export function GetKubeconfig() {
+  return window['go']['main']['App']['GetKubeconfig']();
 }
 
 export function GetRolloutStatus(arg1, arg2) {
@@ -50,8 +74,24 @@ export function GetSecrets(arg1, arg2) {
   return window['go']['main']['App']['GetSecrets'](arg1, arg2);
 }
 
+export function GetShellEnvironment() {
+  return window['go']['main']['App']['GetShellEnvironment']();
+}
+
+export function GetShellPATH() {
+  return window['go']['main']['App']['GetShellPATH']();
+}
+
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
+}
+
+export function ImportShellEnvironment() {
+  return window['go']['main']['App']['ImportShellEnvironment']();
+}
+
+export function LoadEnvironmentProfile(arg1) {
+  return window['go']['main']['App']['LoadEnvironmentProfile'](arg1);
 }
 
 export function LoginToArgoCD(arg1) {
@@ -74,8 +114,28 @@ export function RestartRollout(arg1, arg2) {
   return window['go']['main']['App']['RestartRollout'](arg1, arg2);
 }
 
+export function SaveEnvironmentProfile(arg1) {
+  return window['go']['main']['App']['SaveEnvironmentProfile'](arg1);
+}
+
+export function SetAWSProfile(arg1) {
+  return window['go']['main']['App']['SetAWSProfile'](arg1);
+}
+
+export function SetKubeconfig(arg1) {
+  return window['go']['main']['App']['SetKubeconfig'](arg1);
+}
+
+export function SetPATH(arg1) {
+  return window['go']['main']['App']['SetPATH'](arg1);
+}
+
 export function SetRolloutImage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['SetRolloutImage'](arg1, arg2, arg3, arg4);
+}
+
+export function SetTfInfraRepositoryPath(arg1) {
+  return window['go']['main']['App']['SetTfInfraRepositoryPath'](arg1);
 }
 
 export function SuspendArgoApp(arg1, arg2) {
@@ -84,10 +144,6 @@ export function SuspendArgoApp(arg1, arg2) {
 
 export function SyncArgoApp(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['SyncArgoApp'](arg1, arg2, arg3, arg4);
-}
-
-export function TestSimpleApps() {
-  return window['go']['main']['App']['TestSimpleApps']();
 }
 
 export function TestSimpleArray() {

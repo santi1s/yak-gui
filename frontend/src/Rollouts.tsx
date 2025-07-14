@@ -95,7 +95,12 @@ const RolloutDetailModal: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const status = await window.go.main.App.GetRolloutStatus(config, rollout.name);
+      // Use the rollout's specific namespace, not the global config namespace
+      const rolloutConfig = {
+        ...config,
+        namespace: rollout.namespace || config.namespace
+      };
+      const status = await window.go.main.App.GetRolloutStatus(rolloutConfig, rollout.name);
       setDetailedStatus(status);
     } catch (error) {
       setError(`Failed to load detailed status: ${error}`);

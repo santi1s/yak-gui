@@ -40,6 +40,28 @@ export namespace main {
 	        this.password = source["password"];
 	    }
 	}
+	export class EnvironmentProfile {
+	    name: string;
+	    aws_profile: string;
+	    kubeconfig: string;
+	    path: string;
+	    tf_infra_repository_path: string;
+	    created_at: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new EnvironmentProfile(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.aws_profile = source["aws_profile"];
+	        this.kubeconfig = source["kubeconfig"];
+	        this.path = source["path"];
+	        this.tf_infra_repository_path = source["tf_infra_repository_path"];
+	        this.created_at = source["created_at"];
+	    }
+	}
 	export class JWTClientConfig {
 	    platform: string;
 	    environment: string;

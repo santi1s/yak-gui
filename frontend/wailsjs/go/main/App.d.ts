@@ -10,13 +10,25 @@ export function CreateJWTServer(arg1:main.JWTServerConfig):Promise<void>;
 
 export function CreateSecret(arg1:main.SecretConfig,arg2:string,arg3:string,arg4:string,arg5:string,arg6:Record<string, string>):Promise<void>;
 
+export function DeleteEnvironmentProfile(arg1:string):Promise<void>;
+
 export function DeleteSecret(arg1:main.SecretConfig,arg2:string,arg3:number):Promise<void>;
+
+export function GetAWSProfiles():Promise<Array<string>>;
+
+export function GetAppVersion():Promise<Record<string, string>>;
 
 export function GetArgoApps(arg1:main.ArgoConfig):Promise<Array<main.ArgoApp>>;
 
 export function GetArgoCDServerFromProfile():Promise<string>;
 
 export function GetCurrentAWSProfile():Promise<string>;
+
+export function GetEnvironmentProfiles():Promise<Array<main.EnvironmentProfile>>;
+
+export function GetEnvironmentVariables():Promise<Record<string, string>>;
+
+export function GetKubeconfig():Promise<string>;
 
 export function GetRolloutStatus(arg1:main.KubernetesConfig,arg2:string):Promise<main.RolloutStatus>;
 
@@ -26,7 +38,15 @@ export function GetSecretData(arg1:main.SecretConfig,arg2:string,arg3:number):Pr
 
 export function GetSecrets(arg1:main.SecretConfig,arg2:string):Promise<Array<main.SecretListItem>>;
 
+export function GetShellEnvironment():Promise<Record<string, string>>;
+
+export function GetShellPATH():Promise<string>;
+
 export function Greet(arg1:string):Promise<string>;
+
+export function ImportShellEnvironment():Promise<void>;
+
+export function LoadEnvironmentProfile(arg1:string):Promise<void>;
 
 export function LoginToArgoCD(arg1:main.ArgoConfig):Promise<void>;
 
@@ -38,13 +58,21 @@ export function RefreshArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 
 export function RestartRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
+export function SaveEnvironmentProfile(arg1:string):Promise<void>;
+
+export function SetAWSProfile(arg1:string):Promise<void>;
+
+export function SetKubeconfig(arg1:string):Promise<void>;
+
+export function SetPATH(arg1:string):Promise<void>;
+
 export function SetRolloutImage(arg1:main.KubernetesConfig,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function SetTfInfraRepositoryPath(arg1:string):Promise<void>;
 
 export function SuspendArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 
 export function SyncArgoApp(arg1:main.ArgoConfig,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
-
-export function TestSimpleApps():Promise<Array<main.ArgoApp>>;
 
 export function TestSimpleArray():Promise<Array<string>>;
 

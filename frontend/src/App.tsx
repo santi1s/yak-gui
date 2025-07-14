@@ -33,6 +33,15 @@ interface ArgoConfig {
   password?: string;
 }
 
+interface EnvironmentProfile {
+  name: string;
+  aws_profile: string;
+  kubeconfig: string;
+  path: string;
+  tf_infra_repository_path: string;
+  created_at: string;
+}
+
 // Declare global functions for Wails - consolidated interface for all components
 declare global {
   interface Window {
@@ -50,7 +59,18 @@ declare global {
           SetAWSProfile: (profile: string) => Promise<void>;
           GetKubeconfig: () => Promise<string>;
           SetKubeconfig: (path: string) => Promise<void>;
+          SetPATH: (path: string) => Promise<void>;
+          SetTfInfraRepositoryPath: (path: string) => Promise<void>;
+          GetAWSProfiles: () => Promise<string[]>;
+          GetShellPATH: () => Promise<string>;
+          GetShellEnvironment: () => Promise<Record<string, string>>;
+          ImportShellEnvironment: () => Promise<void>;
           GetEnvironmentVariables: () => Promise<Record<string, string>>;
+          SaveEnvironmentProfile: (name: string) => Promise<void>;
+          GetEnvironmentProfiles: () => Promise<EnvironmentProfile[]>;
+          LoadEnvironmentProfile: (name: string) => Promise<void>;
+          DeleteEnvironmentProfile: (name: string) => Promise<void>;
+          GetAppVersion: () => Promise<Record<string, string>>;
           TestSimpleArray: () => Promise<string[]>;
           TestSimpleApps: () => Promise<ArgoApp[]>;
           LoginToArgoCD: (config: ArgoConfig) => Promise<void>;
@@ -269,21 +289,61 @@ const AppCard: React.FC<{
 };
 
 // Environment Configuration Component
-const EnvironmentConfig: React.FC = () => {
+const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAWSProfileChange }) => {
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
   const [awsProfile, setAwsProfile] = useState('');
+  const [awsProfiles, setAwsProfiles] = useState<string[]>([]);
   const [kubeconfig, setKubeconfig] = useState('');
+  const [pathVar, setPathVar] = useState('');
+  const [tfInfraPath, setTfInfraPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // Profile management state
+  const [profiles, setProfiles] = useState<EnvironmentProfile[]>([]);
+  const [newProfileName, setNewProfileName] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState('');
+  
+  // Version info state
+  const [versionInfo, setVersionInfo] = useState<Record<string, string>>({});
 
   const loadEnvironmentVariables = async () => {
     try {
       if (window.go && window.go.main && window.go.main.App) {
+        // Load current environment variables
         const vars = await window.go.main.App.GetEnvironmentVariables();
         setEnvVars(vars);
         setAwsProfile(vars.AWS_PROFILE || '');
         setKubeconfig(vars.KUBECONFIG || '');
+        setPathVar(vars.PATH || '');
+        setTfInfraPath(vars.TFINFRA_REPOSITORY_PATH || '');
+        
+        // If TFINFRA_REPOSITORY_PATH is available and AWS profile is set, show expected KUBECONFIG path
+        if (vars.TFINFRA_REPOSITORY_PATH && vars.AWS_PROFILE && !vars.KUBECONFIG) {
+          const expectedKubeconfig = `${vars.TFINFRA_REPOSITORY_PATH}/setup/k8senv/${vars.AWS_PROFILE}/config`;
+          setKubeconfig(expectedKubeconfig);
+        }
+        
+        // Load available AWS profiles
+        try {
+          const profiles = await window.go.main.App.GetAWSProfiles();
+          setAwsProfiles(profiles);
+        } catch (error) {
+          console.warn('Failed to load AWS profiles:', error);
+        }
+        
+        // Auto-detect shell PATH if current PATH seems limited
+        if (!vars.PATH || vars.PATH.split(':').length < 4) {
+          try {
+            const shellPath = await window.go.main.App.GetShellPATH();
+            if (shellPath && shellPath !== vars.PATH) {
+              setPathVar(shellPath);
+            }
+          } catch (error) {
+            console.warn('Failed to detect shell PATH:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load environment variables:', error);
@@ -291,8 +351,32 @@ const EnvironmentConfig: React.FC = () => {
     }
   };
 
+  const loadProfiles = async () => {
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const envProfiles = await window.go.main.App.GetEnvironmentProfiles();
+        setProfiles(envProfiles);
+      }
+    } catch (error) {
+      console.error('Failed to load profiles:', error);
+    }
+  };
+
+  const loadVersionInfo = async () => {
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const version = await window.go.main.App.GetAppVersion();
+        setVersionInfo(version);
+      }
+    } catch (error) {
+      console.error('Failed to load version info:', error);
+    }
+  };
+
   useEffect(() => {
     loadEnvironmentVariables();
+    loadProfiles();
+    loadVersionInfo();
   }, []);
 
   const handleSetAWSProfile = async () => {
@@ -309,6 +393,10 @@ const EnvironmentConfig: React.FC = () => {
       await window.go.main.App.SetAWSProfile(awsProfile.trim());
       setSuccess('AWS Profile set successfully');
       await loadEnvironmentVariables();
+      // Notify parent component to update ArgoCD server
+      if (onAWSProfileChange) {
+        onAWSProfileChange();
+      }
     } catch (error) {
       setError(`Failed to set AWS Profile: ${error}`);
     } finally {
@@ -337,15 +425,184 @@ const EnvironmentConfig: React.FC = () => {
     }
   };
 
+  const handleSetPATH = async () => {
+    if (!pathVar.trim()) {
+      setError('PATH cannot be empty');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.SetPATH(pathVar.trim());
+      setSuccess('PATH set successfully');
+      await loadEnvironmentVariables();
+    } catch (error) {
+      setError(`Failed to set PATH: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutoDetectPATH = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const shellPath = await window.go.main.App.GetShellPATH();
+      if (shellPath) {
+        setPathVar(shellPath);
+        setSuccess('Shell PATH detected successfully');
+      } else {
+        setError('Could not detect shell PATH');
+      }
+    } catch (error) {
+      setError(`Failed to detect shell PATH: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImportShellEnvironment = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.ImportShellEnvironment();
+      setSuccess('Shell environment imported successfully');
+      await loadEnvironmentVariables(); // Refresh the UI
+      // Notify parent component to update ArgoCD server
+      if (onAWSProfileChange) {
+        onAWSProfileChange();
+      }
+    } catch (error) {
+      setError(`Failed to import shell environment: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetTfInfraPath = async () => {
+    if (!tfInfraPath.trim()) {
+      setError('TFINFRA_REPOSITORY_PATH cannot be empty');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.SetTfInfraRepositoryPath(tfInfraPath.trim());
+      setSuccess('TFINFRA_REPOSITORY_PATH set successfully');
+      await loadEnvironmentVariables();
+    } catch (error) {
+      setError(`Failed to set TFINFRA_REPOSITORY_PATH: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!newProfileName.trim()) {
+      setError('Profile name cannot be empty');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.SaveEnvironmentProfile(newProfileName.trim());
+      setSuccess(`Profile '${newProfileName.trim()}' saved successfully`);
+      setNewProfileName('');
+      await loadProfiles();
+    } catch (error) {
+      setError(`Failed to save profile: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadProfile = async () => {
+    if (!selectedProfile) {
+      setError('Please select a profile to load');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.LoadEnvironmentProfile(selectedProfile);
+      setSuccess(`Profile '${selectedProfile}' loaded successfully`);
+      await loadEnvironmentVariables();
+      // Notify parent component to update ArgoCD server
+      if (onAWSProfileChange) {
+        onAWSProfileChange();
+      }
+    } catch (error) {
+      setError(`Failed to load profile: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!selectedProfile) {
+      setError('Please select a profile to delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete profile '${selectedProfile}'?`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.DeleteEnvironmentProfile(selectedProfile);
+      setSuccess(`Profile '${selectedProfile}' deleted successfully`);
+      setSelectedProfile('');
+      await loadProfiles();
+    } catch (error) {
+      setError(`Failed to delete profile: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center space-x-3 mb-6">
-          <ComputerDesktopIcon className="w-8 h-8 text-green-500" />
-          <div>
-            <h1 className="text-2xl font-bold">Environment Configuration</h1>
-            <p className="text-slate-400">Set environment variables for AWS and Kubernetes</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <ComputerDesktopIcon className="w-8 h-8 text-green-500" />
+            <div>
+              <h1 className="text-2xl font-bold">Environment Configuration</h1>
+              <p className="text-slate-400">Set environment variables for AWS and Kubernetes</p>
+            </div>
           </div>
+          
+          {/* Version Info */}
+          {versionInfo.version && (
+            <div className="text-right">
+              <div className="text-sm font-medium text-slate-300">
+                {versionInfo.name || 'Yak GUI'}
+              </div>
+              <div className="text-xs text-slate-500">
+                v{versionInfo.version}
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -367,6 +624,139 @@ const EnvironmentConfig: React.FC = () => {
         )}
 
         <div className="grid gap-6">
+          {/* Import Shell Environment */}
+          <div className="bg-slate-800 rounded-lg p-6 border-2 border-green-600">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <ComputerDesktopIcon className="w-5 h-5 text-green-400" />
+              <span>Import Shell Environment</span>
+            </h2>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-300">
+                If you launched this app from Finder and don't see your AWS profiles or environment variables, 
+                click this button to import your shell environment (PATH, AWS_PROFILE, TFINFRA_REPOSITORY_PATH, etc.).
+              </p>
+              <button
+                onClick={handleImportShellEnvironment}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors flex items-center justify-center space-x-2"
+              >
+                <ComputerDesktopIcon className="w-5 h-5" />
+                <span>{loading ? 'Importing...' : 'Import Shell Environment'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Profile Management */}
+          <div className="bg-slate-800 rounded-lg p-6 border-2 border-blue-600">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <DocumentTextIcon className="w-5 h-5 text-blue-400" />
+              <span>Environment Profiles</span>
+            </h2>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-300">
+                Save and load different environment configurations for quick switching between setups.
+              </p>
+              
+              {/* Save Profile Section */}
+              <div className="bg-slate-700 rounded-lg p-4">
+                <h3 className="text-md font-medium mb-3 text-blue-300">Save Current Configuration</h3>
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    placeholder="Profile name (e.g., 'staging', 'production')"
+                    className="flex-1 px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={loading || !newProfileName.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Saving...' : 'Save Profile'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Load/Delete Profile Section */}
+              {profiles.length > 0 && (
+                <div className="bg-slate-700 rounded-lg p-4">
+                  <h3 className="text-md font-medium mb-3 text-blue-300">Load Saved Profile</h3>
+                  <div className="space-y-3">
+                    <select
+                      value={selectedProfile}
+                      onChange={(e) => setSelectedProfile(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select a profile...</option>
+                      {profiles.map((profile) => (
+                        <option key={profile.name} value={profile.name}>
+                          {profile.name} (AWS: {profile.aws_profile || 'none'})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={handleLoadProfile}
+                        disabled={loading || !selectedProfile}
+                        className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                      >
+                        {loading ? 'Loading...' : 'Load Profile'}
+                      </button>
+                      <button
+                        onClick={handleDeleteProfile}
+                        disabled={loading || !selectedProfile}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                      >
+                        {loading ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {profiles.length === 0 && (
+                <div className="text-center py-4 text-slate-400">
+                  No saved profiles yet. Save your current configuration above to get started.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Terraform Infrastructure Path Configuration */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <FolderIcon className="w-5 h-5 text-orange-400" />
+              <span>Terraform Infrastructure Path</span>
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Current TFINFRA_REPOSITORY_PATH: <span className="text-orange-400">{envVars.TFINFRA_REPOSITORY_PATH || 'Not set'}</span>
+                </label>
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={tfInfraPath}
+                    onChange={(e) => setTfInfraPath(e.target.value)}
+                    placeholder="/Users/sergiosantiago/projects/doctolib/terraform-infra"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    onClick={handleSetTfInfraPath}
+                    disabled={loading}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Setting...' : 'Set Path'}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  💡 Required for auto-generating KUBECONFIG paths from AWS profiles
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* AWS Profile Configuration */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
@@ -379,20 +769,47 @@ const EnvironmentConfig: React.FC = () => {
                   Current AWS Profile: <span className="text-blue-400">{envVars.AWS_PROFILE || 'Not set'}</span>
                 </label>
                 <div className="flex space-x-3">
-                  <input
-                    type="text"
+                  <select
                     value={awsProfile}
                     onChange={(e) => setAwsProfile(e.target.value)}
-                    placeholder="staging-aws-fr-par-1"
                     className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    <option value="">Select AWS Profile...</option>
+                    {awsProfiles.map((profile) => (
+                      <option key={profile} value={profile}>
+                        {profile}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={handleSetAWSProfile}
-                    disabled={loading}
+                    disabled={loading || !awsProfile}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
                   >
                     {loading ? 'Setting...' : 'Set Profile'}
                   </button>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {awsProfiles.length === 0 && (
+                    <p className="text-xs text-slate-400">
+                      💡 No AWS profiles found in ~/.aws/config
+                    </p>
+                  )}
+                  {envVars.TFINFRA_REPOSITORY_PATH && (
+                    <p className="text-xs text-slate-400">
+                      ✨ Auto-configures KUBECONFIG and kubectl context when profile is selected
+                    </p>
+                  )}
+                  {!envVars.TFINFRA_REPOSITORY_PATH && (
+                    <p className="text-xs text-yellow-400">
+                      ⚠️ TFINFRA_REPOSITORY_PATH not set - KUBECONFIG won't be auto-configured
+                    </p>
+                  )}
+                  {awsProfile && (
+                    <p className="text-xs text-green-400">
+                      📡 ArgoCD Server: argocd-{awsProfile}.doctolib.net
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -408,6 +825,9 @@ const EnvironmentConfig: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Current KUBECONFIG: <span className="text-purple-400 text-xs font-mono break-all">{envVars.KUBECONFIG || 'Not set'}</span>
+                  {envVars.TFINFRA_REPOSITORY_PATH && envVars.AWS_PROFILE && (
+                    <span className="ml-2 text-xs text-green-400">(Auto-generated from AWS profile)</span>
+                  )}
                 </label>
                 <div className="flex space-x-3">
                   <input
@@ -425,6 +845,47 @@ const EnvironmentConfig: React.FC = () => {
                     {loading ? 'Setting...' : 'Set Config'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PATH Configuration */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <CogIcon className="w-5 h-5 text-yellow-400" />
+              <span>System PATH</span>
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Current PATH: <span className="text-yellow-400 text-xs font-mono break-all">{envVars.PATH ? `${envVars.PATH.split(':').length} directories` : 'Not set'}</span>
+                </label>
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={pathVar}
+                    onChange={(e) => setPathVar(e.target.value)}
+                    placeholder="/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  />
+                  <button
+                    onClick={handleAutoDetectPATH}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Detecting...' : 'Auto-detect'}
+                  </button>
+                  <button
+                    onClick={handleSetPATH}
+                    disabled={loading}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Setting...' : 'Set PATH'}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  💡 Include paths like /usr/local/bin and /opt/homebrew/bin where aws-iam-authenticator is installed
+                </p>
               </div>
             </div>
           </div>
@@ -464,7 +925,7 @@ const App: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [awsProfile, setAwsProfile] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'argocd' | 'rollouts' | 'secrets' | 'environment'>('argocd');
+  const [activeTab, setActiveTab] = useState<'argocd' | 'rollouts' | 'secrets' | 'environment'>('environment');
 
   const loadAWSProfile = async () => {
     try {
@@ -472,15 +933,33 @@ const App: React.FC = () => {
         const profile = await window.go.main.App.GetCurrentAWSProfile();
         setAwsProfile(profile);
         
-        if (profile && !config.server) {
+        if (profile) {
           // Auto-detect ArgoCD server from AWS profile
-          const server = await window.go.main.App.GetArgoCDServerFromProfile();
-          setConfig(prev => ({ ...prev, server }));
+          try {
+            const server = await window.go.main.App.GetArgoCDServerFromProfile();
+            setConfig(prev => ({ ...prev, server }));
+          } catch (error) {
+            console.warn('Failed to get ArgoCD server from profile:', error);
+          }
         }
       }
     } catch (error) {
       console.error('Failed to load AWS profile:', error);
       // Don't set error state for this, it's optional
+    }
+  };
+
+  const updateArgoCDServer = async () => {
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const profile = await window.go.main.App.GetCurrentAWSProfile();
+        if (profile) {
+          const server = await window.go.main.App.GetArgoCDServerFromProfile();
+          setConfig(prev => ({ ...prev, server }));
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to update ArgoCD server:', error);
     }
   };
 
@@ -761,6 +1240,16 @@ const App: React.FC = () => {
         <div className="px-6">
           <div className="flex space-x-8">
             <button
+              onClick={() => setActiveTab('environment')}
+              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'environment'
+                  ? 'border-green-500 text-green-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              Environment
+            </button>
+            <button
               onClick={() => setActiveTab('argocd')}
               className={`py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'argocd'
@@ -790,16 +1279,6 @@ const App: React.FC = () => {
             >
               Secrets
             </button>
-            <button
-              onClick={() => setActiveTab('environment')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'environment'
-                  ? 'border-green-500 text-green-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Environment
-            </button>
           </div>
         </div>
       </div>
@@ -808,7 +1287,7 @@ const App: React.FC = () => {
       {activeTab === 'argocd' ? <ArgocdInterface /> : 
        activeTab === 'rollouts' ? <Rollouts /> : 
        activeTab === 'secrets' ? <Secrets /> :
-       <EnvironmentConfig />}
+       <EnvironmentConfig onAWSProfileChange={updateArgoCDServer} />}
     </div>
   );
 };
