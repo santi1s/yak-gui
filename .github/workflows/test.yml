@@ -57,7 +57,9 @@ jobs:
             dirs_list=$(echo "$files" | xargs -n 1 dirname | sort -u)
           fi
 
-          json_output=$(echo "$dirs_list" | jq -Rsc 'split("\n") | map(select(length > 0))')
+          # Filter out yak-gui directory as it's a Wails app, not a Go package
+          filtered_dirs=$(echo "$dirs_list" | grep -v "^yak-gui$" | grep -v "^yak-gui/")
+          json_output=$(echo "$filtered_dirs" | jq -Rsc 'split("\n") | map(select(length > 0))')
           echo "Formatted JSON output: \"$json_output\""
           echo "package_list=${json_output}" >> "${GITHUB_OUTPUT}"
 
