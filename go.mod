@@ -4,7 +4,10 @@ go 1.24.0
 
 toolchain go1.24.5
 
-require github.com/wailsapp/wails/v2 v2.10.2
+require (
+	github.com/wailsapp/wails/v2 v2.10.2
+	gopkg.in/yaml.v2 v2.4.0
+)
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect

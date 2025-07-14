@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function AbortRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
+export function CheckGandiToken():Promise<main.CertificateOperation>;
+
 export function CreateJWTClient(arg1:main.JWTClientConfig):Promise<void>;
 
 export function CreateJWTServer(arg1:main.JWTServerConfig):Promise<void>;
@@ -14,13 +16,19 @@ export function DeleteEnvironmentProfile(arg1:string):Promise<void>;
 
 export function DeleteSecret(arg1:main.SecretConfig,arg2:string,arg3:number):Promise<void>;
 
+export function DescribeCertificateSecret(arg1:string,arg2:number,arg3:number):Promise<main.CertificateOperation>;
+
 export function GetAWSProfiles():Promise<Array<string>>;
 
 export function GetAppVersion():Promise<Record<string, string>>;
 
+export function GetArgoAppDetail(arg1:main.ArgoConfig,arg2:string):Promise<main.ArgoAppDetail>;
+
 export function GetArgoApps(arg1:main.ArgoConfig):Promise<Array<main.ArgoApp>>;
 
 export function GetArgoCDServerFromProfile():Promise<string>;
+
+export function GetCertificateConfig():Promise<Array<main.Certificate>>;
 
 export function GetCurrentAWSProfile():Promise<string>;
 
@@ -34,6 +42,12 @@ export function GetRolloutStatus(arg1:main.KubernetesConfig,arg2:string):Promise
 
 export function GetRollouts(arg1:main.KubernetesConfig):Promise<Array<main.RolloutListItem>>;
 
+export function GetSecretConfigEnvironments(arg1:string):Promise<Array<string>>;
+
+export function GetSecretConfigPaths(arg1:string,arg2:string):Promise<Array<string>>;
+
+export function GetSecretConfigPlatforms():Promise<Array<string>>;
+
 export function GetSecretData(arg1:main.SecretConfig,arg2:string,arg3:number):Promise<main.SecretData>;
 
 export function GetSecrets(arg1:main.SecretConfig,arg2:string):Promise<Array<main.SecretListItem>>;
@@ -46,9 +60,17 @@ export function Greet(arg1:string):Promise<string>;
 
 export function ImportShellEnvironment():Promise<void>;
 
+export function IsWindowMaximized():Promise<boolean>;
+
+export function ListCertificates():Promise<Array<string>>;
+
 export function LoadEnvironmentProfile(arg1:string):Promise<void>;
 
+export function LoadSecretConfig():Promise<main.YakSecretConfig>;
+
 export function LoginToArgoCD(arg1:main.ArgoConfig):Promise<void>;
+
+export function MaximizeWindow():Promise<void>;
 
 export function PauseRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
@@ -56,9 +78,15 @@ export function PromoteRollout(arg1:main.KubernetesConfig,arg2:string,arg3:boole
 
 export function RefreshArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 
+export function RefreshCertificateSecret(arg1:string,arg2:string):Promise<main.CertificateOperation>;
+
+export function RenewCertificate(arg1:string,arg2:string):Promise<main.CertificateOperation>;
+
 export function RestartRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
 export function SaveEnvironmentProfile(arg1:string):Promise<void>;
+
+export function SendCertificateNotification(arg1:string,arg2:string,arg3:string):Promise<main.CertificateOperation>;
 
 export function SetAWSProfile(arg1:string):Promise<void>;
 
@@ -75,6 +103,8 @@ export function SuspendArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 export function SyncArgoApp(arg1:main.ArgoConfig,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
 
 export function TestSimpleArray():Promise<Array<string>>;
+
+export function UnmaximizeWindow():Promise<void>;
 
 export function UnsuspendArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 

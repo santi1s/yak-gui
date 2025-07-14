@@ -6,6 +6,10 @@ export function AbortRollout(arg1, arg2) {
   return window['go']['main']['App']['AbortRollout'](arg1, arg2);
 }
 
+export function CheckGandiToken() {
+  return window['go']['main']['App']['CheckGandiToken']();
+}
+
 export function CreateJWTClient(arg1) {
   return window['go']['main']['App']['CreateJWTClient'](arg1);
 }
@@ -26,6 +30,10 @@ export function DeleteSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteSecret'](arg1, arg2, arg3);
 }
 
+export function DescribeCertificateSecret(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DescribeCertificateSecret'](arg1, arg2, arg3);
+}
+
 export function GetAWSProfiles() {
   return window['go']['main']['App']['GetAWSProfiles']();
 }
@@ -34,12 +42,20 @@ export function GetAppVersion() {
   return window['go']['main']['App']['GetAppVersion']();
 }
 
+export function GetArgoAppDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetArgoAppDetail'](arg1, arg2);
+}
+
 export function GetArgoApps(arg1) {
   return window['go']['main']['App']['GetArgoApps'](arg1);
 }
 
 export function GetArgoCDServerFromProfile() {
   return window['go']['main']['App']['GetArgoCDServerFromProfile']();
+}
+
+export function GetCertificateConfig() {
+  return window['go']['main']['App']['GetCertificateConfig']();
 }
 
 export function GetCurrentAWSProfile() {
@@ -66,6 +82,18 @@ export function GetRollouts(arg1) {
   return window['go']['main']['App']['GetRollouts'](arg1);
 }
 
+export function GetSecretConfigEnvironments(arg1) {
+  return window['go']['main']['App']['GetSecretConfigEnvironments'](arg1);
+}
+
+export function GetSecretConfigPaths(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretConfigPaths'](arg1, arg2);
+}
+
+export function GetSecretConfigPlatforms() {
+  return window['go']['main']['App']['GetSecretConfigPlatforms']();
+}
+
 export function GetSecretData(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetSecretData'](arg1, arg2, arg3);
 }
@@ -90,12 +118,28 @@ export function ImportShellEnvironment() {
   return window['go']['main']['App']['ImportShellEnvironment']();
 }
 
+export function IsWindowMaximized() {
+  return window['go']['main']['App']['IsWindowMaximized']();
+}
+
+export function ListCertificates() {
+  return window['go']['main']['App']['ListCertificates']();
+}
+
 export function LoadEnvironmentProfile(arg1) {
   return window['go']['main']['App']['LoadEnvironmentProfile'](arg1);
 }
 
+export function LoadSecretConfig() {
+  return window['go']['main']['App']['LoadSecretConfig']();
+}
+
 export function LoginToArgoCD(arg1) {
   return window['go']['main']['App']['LoginToArgoCD'](arg1);
+}
+
+export function MaximizeWindow() {
+  return window['go']['main']['App']['MaximizeWindow']();
 }
 
 export function PauseRollout(arg1, arg2) {
@@ -110,12 +154,24 @@ export function RefreshArgoApp(arg1, arg2) {
   return window['go']['main']['App']['RefreshArgoApp'](arg1, arg2);
 }
 
+export function RefreshCertificateSecret(arg1, arg2) {
+  return window['go']['main']['App']['RefreshCertificateSecret'](arg1, arg2);
+}
+
+export function RenewCertificate(arg1, arg2) {
+  return window['go']['main']['App']['RenewCertificate'](arg1, arg2);
+}
+
 export function RestartRollout(arg1, arg2) {
   return window['go']['main']['App']['RestartRollout'](arg1, arg2);
 }
 
 export function SaveEnvironmentProfile(arg1) {
   return window['go']['main']['App']['SaveEnvironmentProfile'](arg1);
+}
+
+export function SendCertificateNotification(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SendCertificateNotification'](arg1, arg2, arg3);
 }
 
 export function SetAWSProfile(arg1) {
@@ -148,6 +204,10 @@ export function SyncArgoApp(arg1, arg2, arg3, arg4) {
 
 export function TestSimpleArray() {
   return window['go']['main']['App']['TestSimpleArray']();
+}
+
+export function UnmaximizeWindow() {
+  return window['go']['main']['App']['UnmaximizeWindow']();
 }
 
 export function UnsuspendArgoApp(arg1, arg2) {

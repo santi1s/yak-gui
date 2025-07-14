@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ant Design theme customizations */
+.ant-layout-header {
+  background: linear-gradient(135deg, #1890ff 0%, #722ed1 100%);
+}
+
+.ant-tabs-tab {
+  font-weight: 500;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.ant-input {
+  border-radius: 6px;
+}
+
+.ant-select-selector {
+  border-radius: 6px !important;
+}
+
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;

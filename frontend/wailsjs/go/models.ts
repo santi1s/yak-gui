@@ -22,6 +22,48 @@ export namespace main {
 	        this.Conditions = source["Conditions"];
 	    }
 	}
+	export class ArgoAppDetail {
+	    AppName: string;
+	    Health: string;
+	    Sync: string;
+	    Suspended: boolean;
+	    SyncLoop: string;
+	    Conditions: string[];
+	    namespace: string;
+	    project: string;
+	    repoUrl: string;
+	    path: string;
+	    targetRev: string;
+	    labels: Record<string, string>;
+	    annotations: Record<string, string>;
+	    createdAt: string;
+	    server: string;
+	    cluster: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ArgoAppDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.AppName = source["AppName"];
+	        this.Health = source["Health"];
+	        this.Sync = source["Sync"];
+	        this.Suspended = source["Suspended"];
+	        this.SyncLoop = source["SyncLoop"];
+	        this.Conditions = source["Conditions"];
+	        this.namespace = source["namespace"];
+	        this.project = source["project"];
+	        this.repoUrl = source["repoUrl"];
+	        this.path = source["path"];
+	        this.targetRev = source["targetRev"];
+	        this.labels = source["labels"];
+	        this.annotations = source["annotations"];
+	        this.createdAt = source["createdAt"];
+	        this.server = source["server"];
+	        this.cluster = source["cluster"];
+	    }
+	}
 	export class ArgoConfig {
 	    server: string;
 	    project: string;
@@ -38,6 +80,107 @@ export namespace main {
 	        this.project = source["project"];
 	        this.username = source["username"];
 	        this.password = source["password"];
+	    }
+	}
+	export class SecretPath {
+	    platform: string;
+	    env: string;
+	    path: string;
+	    keys: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new SecretPath(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.platform = source["platform"];
+	        this.env = source["env"];
+	        this.path = source["path"];
+	        this.keys = source["keys"];
+	    }
+	}
+	export class CloudflareConfig {
+	    path: string;
+	    zone: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.zone = source["zone"];
+	    }
+	}
+	export class Certificate {
+	    name: string;
+	    conf: string;
+	    issuer: string;
+	    tags: string[];
+	    cloudflare: CloudflareConfig;
+	    secret: SecretPath;
+	
+	    static createFrom(source: any = {}) {
+	        return new Certificate(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.conf = source["conf"];
+	        this.issuer = source["issuer"];
+	        this.tags = source["tags"];
+	        this.cloudflare = this.convertValues(source["cloudflare"], CloudflareConfig);
+	        this.secret = this.convertValues(source["secret"], SecretPath);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class CertificateOperation {
+	    success: boolean;
+	    message: string;
+	    output: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CertificateOperation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.message = source["message"];
+	        this.output = source["output"];
+	    }
+	}
+	
+	export class ClusterConfig {
+	    Endpoint: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ClusterConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Endpoint = source["Endpoint"];
 	    }
 	}
 	export class EnvironmentProfile {
@@ -65,7 +208,6 @@ export namespace main {
 	export class JWTClientConfig {
 	    platform: string;
 	    environment: string;
-	    team: string;
 	    path: string;
 	    owner: string;
 	    localName: string;
@@ -80,7 +222,6 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.platform = source["platform"];
 	        this.environment = source["environment"];
-	        this.team = source["team"];
 	        this.path = source["path"];
 	        this.owner = source["owner"];
 	        this.localName = source["localName"];
@@ -91,7 +232,6 @@ export namespace main {
 	export class JWTServerConfig {
 	    platform: string;
 	    environment: string;
-	    team: string;
 	    path: string;
 	    owner: string;
 	    localName: string;
@@ -107,7 +247,6 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.platform = source["platform"];
 	        this.environment = source["environment"];
-	        this.team = source["team"];
 	        this.path = source["path"];
 	        this.owner = source["owner"];
 	        this.localName = source["localName"];
@@ -128,6 +267,28 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.server = source["server"];
 	        this.namespace = source["namespace"];
+	    }
+	}
+	export class PlatformConfig {
+	    Clusters: string[];
+	    AwsProfile: string;
+	    AwsRegion: string;
+	    VaultRole: string;
+	    Environments: Record<string, string>;
+	    VaultParentNamespace: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PlatformConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Clusters = source["Clusters"];
+	        this.AwsProfile = source["AwsProfile"];
+	        this.AwsRegion = source["AwsRegion"];
+	        this.VaultRole = source["VaultRole"];
+	        this.Environments = source["Environments"];
+	        this.VaultParentNamespace = source["VaultParentNamespace"];
 	    }
 	}
 	export class RolloutListItem {
@@ -195,7 +356,6 @@ export namespace main {
 	export class SecretConfig {
 	    platform: string;
 	    environment: string;
-	    team: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SecretConfig(source);
@@ -205,7 +365,6 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.platform = source["platform"];
 	        this.environment = source["environment"];
-	        this.team = source["team"];
 	    }
 	}
 	export class SecretMetadata {
@@ -291,6 +450,40 @@ export namespace main {
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
 	    }
+	}
+	
+	
+	export class YakSecretConfig {
+	    Clusters: Record<string, ClusterConfig>;
+	    Platforms: Record<string, PlatformConfig>;
+	
+	    static createFrom(source: any = {}) {
+	        return new YakSecretConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Clusters = this.convertValues(source["Clusters"], ClusterConfig, true);
+	        this.Platforms = this.convertValues(source["Platforms"], PlatformConfig, true);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }
