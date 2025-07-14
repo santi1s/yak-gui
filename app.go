@@ -201,9 +201,9 @@ func (a *App) LoginToArgoCD(config ArgoConfig) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
-	fmt.Printf("DEBUG: Executing login command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing login command: yak %v\n", args)
 	
 	// Run the command and wait for completion
 	if err := cmd.Run(); err != nil {
@@ -249,10 +249,10 @@ func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
 	// Add debugging
-	fmt.Printf("DEBUG: Executing command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -346,7 +346,7 @@ func (a *App) SyncArgoApp(config ArgoConfig, appName string, prune, dryRun bool)
 	}
 
 	// Execute yak argocd sync
-	cmd := exec.Command("../yak", args...)
+	cmd := exec.Command("yak", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to sync application %s: %w", appName, err)
 	}
@@ -366,7 +366,7 @@ func (a *App) RefreshArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd refresh
-	cmd := exec.Command("../yak", args...)
+	cmd := exec.Command("yak", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to refresh application %s: %w", appName, err)
 	}
@@ -386,7 +386,7 @@ func (a *App) SuspendArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd suspend
-	cmd := exec.Command("../yak", args...)
+	cmd := exec.Command("yak", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to suspend application %s: %w", appName, err)
 	}
@@ -406,7 +406,7 @@ func (a *App) UnsuspendArgoApp(config ArgoConfig, appName string) error {
 	}
 
 	// Execute yak argocd unsuspend
-	cmd := exec.Command("../yak", args...)
+	cmd := exec.Command("yak", args...)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to unsuspend application %s: %w", appName, err)
 	}
@@ -431,9 +431,9 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
-	fmt.Printf("DEBUG: Executing rollouts list command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing rollouts list command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -517,9 +517,9 @@ func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*Ro
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
-	fmt.Printf("DEBUG: Executing rollouts status command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing rollouts status command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -579,8 +579,8 @@ func (a *App) PromoteRollout(config KubernetesConfig, rolloutName string, full b
 	}
 
 	// Execute yak rollouts promote
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts promote command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts promote command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to promote rollout %s: %w", rolloutName, err)
@@ -605,8 +605,8 @@ func (a *App) PauseRollout(config KubernetesConfig, rolloutName string) error {
 	}
 
 	// Execute yak rollouts pause
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts pause command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts pause command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to pause rollout %s: %w", rolloutName, err)
@@ -631,8 +631,8 @@ func (a *App) AbortRollout(config KubernetesConfig, rolloutName string) error {
 	}
 
 	// Execute yak rollouts abort
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts abort command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts abort command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to abort rollout %s: %w", rolloutName, err)
@@ -657,8 +657,8 @@ func (a *App) RestartRollout(config KubernetesConfig, rolloutName string) error 
 	}
 
 	// Execute yak rollouts restart
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts restart command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts restart command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to restart rollout %s: %w", rolloutName, err)
@@ -689,8 +689,8 @@ func (a *App) SetRolloutImage(config KubernetesConfig, rolloutName, image, conta
 	}
 
 	// Execute yak rollouts set-image
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing rollouts set-image command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing rollouts set-image command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to set image for rollout %s: %w", rolloutName, err)
@@ -720,9 +720,9 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
-	fmt.Printf("DEBUG: Executing secret list command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing secret list command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -797,9 +797,9 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
-	cmd := exec.CommandContext(ctx, "../yak", args...)
+	cmd := exec.CommandContext(ctx, "yak", args...)
 	
-	fmt.Printf("DEBUG: Executing secret get command: ../yak %v\n", args)
+	fmt.Printf("DEBUG: Executing secret get command: yak %v\n", args)
 	
 	output, err := cmd.Output()
 	if err != nil {
@@ -851,8 +851,8 @@ func (a *App) CreateSecret(config SecretConfig, path, owner, usage, source strin
 	}
 
 	// Execute yak secret create
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing secret create command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing secret create command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create secret %s: %w", path, err)
@@ -885,8 +885,8 @@ func (a *App) UpdateSecret(config SecretConfig, path string, data map[string]str
 	}
 
 	// Execute yak secret update
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing secret update command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing secret update command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to update secret %s: %w", path, err)
@@ -917,8 +917,8 @@ func (a *App) DeleteSecret(config SecretConfig, path string, version int) error 
 	}
 
 	// Execute yak secret delete
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing secret delete command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing secret delete command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete secret %s: %w", path, err)
@@ -1245,8 +1245,8 @@ func (a *App) CreateJWTClient(config JWTClientConfig) error {
 	}
 
 	// Execute yak secret jwt client
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing JWT client command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing JWT client command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create JWT client secret: %w", err)
@@ -1278,8 +1278,8 @@ func (a *App) CreateJWTServer(config JWTServerConfig) error {
 	}
 
 	// Execute yak secret jwt server
-	cmd := exec.Command("../yak", args...)
-	fmt.Printf("DEBUG: Executing JWT server command: ../yak %v\n", args)
+	cmd := exec.Command("yak", args...)
+	fmt.Printf("DEBUG: Executing JWT server command: yak %v\n", args)
 	
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to create JWT server secret: %w", err)
