@@ -203,6 +203,37 @@ func (a *App) GetCurrentAWSProfile() string {
 	return os.Getenv("AWS_PROFILE")
 }
 
+// SetAWSProfile sets the AWS_PROFILE environment variable for the current session
+func (a *App) SetAWSProfile(profile string) error {
+	if profile == "" {
+		return fmt.Errorf("AWS profile cannot be empty")
+	}
+	return os.Setenv("AWS_PROFILE", profile)
+}
+
+// GetKubeconfig returns the current KUBECONFIG environment variable
+func (a *App) GetKubeconfig() string {
+	return os.Getenv("KUBECONFIG")
+}
+
+// SetKubeconfig sets the KUBECONFIG environment variable for the current session
+func (a *App) SetKubeconfig(path string) error {
+	if path == "" {
+		return fmt.Errorf("Kubeconfig path cannot be empty")
+	}
+	return os.Setenv("KUBECONFIG", path)
+}
+
+// GetEnvironmentVariables returns a map of current environment variables
+func (a *App) GetEnvironmentVariables() map[string]string {
+	return map[string]string{
+		"AWS_PROFILE": os.Getenv("AWS_PROFILE"),
+		"KUBECONFIG":  os.Getenv("KUBECONFIG"),
+		"HOME":        os.Getenv("HOME"),
+		"PATH":        os.Getenv("PATH"),
+	}
+}
+
 // LoginToArgoCD attempts to login to ArgoCD using the yak CLI
 func (a *App) LoginToArgoCD(config ArgoConfig) error {
 	if config.Server == "" {

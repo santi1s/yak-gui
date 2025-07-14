@@ -12,7 +12,10 @@ import {
   CogIcon,
   ArrowUpIcon,
   ChevronDoubleUpIcon,
-  PhotoIcon
+  PhotoIcon,
+  EyeIcon,
+  DocumentTextIcon,
+  ClipboardDocumentIcon
 } from '@heroicons/react/24/outline';
 
 // Types matching the Go backend
@@ -95,6 +98,244 @@ const StatusBadge: React.FC<{ status: string, type: 'status' | 'strategy' }> = (
   );
 };
 
+// Detailed Rollout Modal Component
+const RolloutDetailModal: React.FC<{ 
+  rollout: RolloutListItem; 
+  config: KubernetesConfig;
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ rollout, config, isOpen, onClose }) => {
+  const [detailedStatus, setDetailedStatus] = useState<RolloutStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDetailedStatus = async () => {
+    if (!isOpen || !rollout?.name) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const status = await window.go.main.App.GetRolloutStatus(config, rollout.name);
+      setDetailedStatus(status);
+    } catch (error) {
+      setError(`Failed to load detailed status: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDetailedStatus();
+    }
+  }, [isOpen, rollout?.name]);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-700">
+        <div className="sticky top-0 bg-slate-800 border-b border-slate-700 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <DocumentTextIcon className="w-6 h-6 text-purple-400" />
+              <div>
+                <h2 className="text-xl font-bold text-white">{rollout?.name}</h2>
+                <p className="text-sm text-slate-400">{rollout?.namespace}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white"
+            >
+              <XCircleIcon className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-900 border border-red-700 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <XCircleIcon className="w-5 h-5 text-red-400" />
+                <span className="text-red-100">{error}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="bg-slate-700 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-white mb-4">Basic Information</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <span className="text-sm text-slate-400">Status:</span>
+                    <div className="mt-1">
+                      <StatusBadge status={detailedStatus?.status || rollout?.status || 'Unknown'} type="status" />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-400">Strategy:</span>
+                    <div className="mt-1">
+                      <StatusBadge status={detailedStatus?.strategy || rollout?.strategy || 'Unknown'} type="strategy" />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-400">Replicas:</span>
+                    <p className="text-white font-mono">{detailedStatus?.replicas || rollout?.replicas || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-400">Current Step:</span>
+                    <p className="text-white font-mono">{detailedStatus?.currentStep || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-400">Revision:</span>
+                    <p className="text-white font-mono">{detailedStatus?.revision || rollout?.revision || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-400">Age:</span>
+                    <p className="text-white">{rollout?.age || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Status Information */}
+              {detailedStatus && (
+                <div className="bg-slate-700 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-white mb-4">Detailed Status</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <span className="text-sm text-slate-400">Updated:</span>
+                      <p className="text-white font-mono">{detailedStatus.updated || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-400">Ready:</span>
+                      <p className="text-white font-mono">{detailedStatus.ready || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-400">Available:</span>
+                      <p className="text-white font-mono">{detailedStatus.available || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-slate-400">Analysis:</span>
+                      <p className="text-white font-mono">{detailedStatus.analysis || 'N/A'}</p>
+                    </div>
+                  </div>
+                  {detailedStatus.message && (
+                    <div className="mt-4">
+                      <span className="text-sm text-slate-400">Message:</span>
+                      <p className="text-white bg-slate-800 p-3 rounded mt-1 font-mono text-sm">{detailedStatus.message}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Container Images - Full Details */}
+              {((detailedStatus?.images && Object.keys(detailedStatus.images).length > 0) || 
+                (rollout?.images && Object.keys(rollout.images).length > 0)) && (
+                <div className="bg-slate-700 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+                    <PhotoIcon className="w-5 h-5 text-purple-400" />
+                    <span>Container Images</span>
+                  </h3>
+                  <div className="space-y-4">
+                    {Object.entries(detailedStatus?.images || rollout?.images || {}).map(([container, image]) => {
+                      // Split by registry/path and image:tag
+                      const imageParts = image.split('/');
+                      const imageNameWithTag = imageParts[imageParts.length - 1];
+                      const registry = imageParts.length > 1 ? imageParts.slice(0, -1).join('/') : '';
+                      
+                      // Handle both tag and digest formats
+                      let imageName, version;
+                      if (imageNameWithTag.includes('@sha256:')) {
+                        [imageName, version] = imageNameWithTag.split('@');
+                      } else if (imageNameWithTag.includes(':')) {
+                        [imageName, version] = imageNameWithTag.split(':');
+                      } else {
+                        imageName = imageNameWithTag;
+                        version = 'latest';
+                      }
+                      
+                      return (
+                        <div key={container} className="bg-slate-800 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-md font-medium text-white">{container}</h4>
+                            <button
+                              onClick={() => copyToClipboard(image)}
+                              className="text-slate-400 hover:text-white"
+                              title="Copy full image reference"
+                            >
+                              <ClipboardDocumentIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-xs text-slate-400">Registry:</span>
+                              <p className="text-white font-mono text-sm break-all">{registry || 'docker.io'}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-400">Image:</span>
+                              <p className="text-white font-mono text-sm">{imageName}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-400">Version:</span>
+                              <div className="flex items-center space-x-2">
+                                <span 
+                                  className={`px-2 py-1 rounded font-mono text-sm break-all ${
+                                    version && version.startsWith('sha256:') 
+                                      ? 'text-orange-300 bg-orange-900' 
+                                      : 'text-purple-300 bg-purple-900'
+                                  }`}
+                                >
+                                  {version}
+                                </span>
+                                {version && version.startsWith('sha256:') && (
+                                  <button
+                                    onClick={() => copyToClipboard(version)}
+                                    className="text-slate-400 hover:text-white"
+                                    title="Copy SHA256 digest"
+                                  >
+                                    <ClipboardDocumentIcon className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-400">Full Reference:</span>
+                              <div className="flex items-center space-x-2">
+                                <p className="text-white font-mono text-sm bg-slate-900 p-2 rounded flex-1 break-all">{image}</p>
+                                <button
+                                  onClick={() => copyToClipboard(image)}
+                                  className="text-slate-400 hover:text-white flex-shrink-0"
+                                  title="Copy full image reference"
+                                >
+                                  <ClipboardDocumentIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RolloutCard: React.FC<{ 
   rollout: RolloutListItem; 
   config: KubernetesConfig;
@@ -103,6 +344,7 @@ const RolloutCard: React.FC<{
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [newImage, setNewImage] = useState('');
   const [containerName, setContainerName] = useState('');
 
@@ -348,7 +590,7 @@ const RolloutCard: React.FC<{
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={handleRestart}
             disabled={actionLoading !== null}
@@ -369,6 +611,15 @@ const RolloutCard: React.FC<{
           >
             <PhotoIcon className="w-4 h-4" />
             <span>Image</span>
+          </button>
+
+          <button
+            onClick={() => setShowDetailModal(true)}
+            disabled={actionLoading !== null}
+            className="flex items-center justify-center space-x-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            <EyeIcon className="w-4 h-4" />
+            <span>Details</span>
           </button>
         </div>
       </div>
@@ -429,6 +680,14 @@ const RolloutCard: React.FC<{
           </div>
         </div>
       )}
+
+      {/* Rollout Detail Modal */}
+      <RolloutDetailModal
+        rollout={rollout}
+        config={config}
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+      />
     </>
   );
 };

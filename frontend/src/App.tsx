@@ -9,7 +9,9 @@ import {
   XCircleIcon,
   ClockIcon,
   ServerIcon,
-  CogIcon
+  CogIcon,
+  ComputerDesktopIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
 import Rollouts from './Rollouts';
 import Secrets from './Secrets';
@@ -44,6 +46,10 @@ declare global {
           UnsuspendArgoApp: (config: ArgoConfig, appName: string) => Promise<void>;
           GetArgoCDServerFromProfile: () => Promise<string>;
           GetCurrentAWSProfile: () => Promise<string>;
+          SetAWSProfile: (profile: string) => Promise<void>;
+          GetKubeconfig: () => Promise<string>;
+          SetKubeconfig: (path: string) => Promise<void>;
+          GetEnvironmentVariables: () => Promise<Record<string, string>>;
           TestSimpleArray: () => Promise<string[]>;
           TestSimpleApps: () => Promise<ArgoApp[]>;
           LoginToArgoCD: (config: ArgoConfig) => Promise<void>;
@@ -259,6 +265,188 @@ const AppCard: React.FC<{
   );
 };
 
+// Environment Configuration Component
+const EnvironmentConfig: React.FC = () => {
+  const [envVars, setEnvVars] = useState<Record<string, string>>({});
+  const [awsProfile, setAwsProfile] = useState('');
+  const [kubeconfig, setKubeconfig] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const loadEnvironmentVariables = async () => {
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const vars = await window.go.main.App.GetEnvironmentVariables();
+        setEnvVars(vars);
+        setAwsProfile(vars.AWS_PROFILE || '');
+        setKubeconfig(vars.KUBECONFIG || '');
+      }
+    } catch (error) {
+      console.error('Failed to load environment variables:', error);
+      setError('Failed to load environment variables');
+    }
+  };
+
+  useEffect(() => {
+    loadEnvironmentVariables();
+  }, []);
+
+  const handleSetAWSProfile = async () => {
+    if (!awsProfile.trim()) {
+      setError('AWS Profile cannot be empty');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.SetAWSProfile(awsProfile.trim());
+      setSuccess('AWS Profile set successfully');
+      await loadEnvironmentVariables();
+    } catch (error) {
+      setError(`Failed to set AWS Profile: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetKubeconfig = async () => {
+    if (!kubeconfig.trim()) {
+      setError('Kubeconfig path cannot be empty');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      await window.go.main.App.SetKubeconfig(kubeconfig.trim());
+      setSuccess('Kubeconfig set successfully');
+      await loadEnvironmentVariables();
+    } catch (error) {
+      setError(`Failed to set Kubeconfig: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center space-x-3 mb-6">
+          <ComputerDesktopIcon className="w-8 h-8 text-green-500" />
+          <div>
+            <h1 className="text-2xl font-bold">Environment Configuration</h1>
+            <p className="text-slate-400">Set environment variables for AWS and Kubernetes</p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-900 border border-red-700 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <XCircleIcon className="w-5 h-5 text-red-400" />
+              <span className="text-red-100">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 p-4 bg-green-900 border border-green-700 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <CheckCircleIcon className="w-5 h-5 text-green-400" />
+              <span className="text-green-100">{success}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-6">
+          {/* AWS Profile Configuration */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <ServerIcon className="w-5 h-5 text-blue-400" />
+              <span>AWS Profile</span>
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Current AWS Profile: <span className="text-blue-400">{envVars.AWS_PROFILE || 'Not set'}</span>
+                </label>
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={awsProfile}
+                    onChange={(e) => setAwsProfile(e.target.value)}
+                    placeholder="staging-aws-fr-par-1"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleSetAWSProfile}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Setting...' : 'Set Profile'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Kubeconfig Configuration */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <FolderIcon className="w-5 h-5 text-purple-400" />
+              <span>Kubernetes Configuration</span>
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Current KUBECONFIG: <span className="text-purple-400 text-xs font-mono break-all">{envVars.KUBECONFIG || 'Not set'}</span>
+                </label>
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={kubeconfig}
+                    onChange={(e) => setKubeconfig(e.target.value)}
+                    placeholder="/path/to/kubeconfig"
+                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    onClick={handleSetKubeconfig}
+                    disabled={loading}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+                  >
+                    {loading ? 'Setting...' : 'Set Config'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Environment Variables Display */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+              <CogIcon className="w-5 h-5 text-green-400" />
+              <span>Current Environment</span>
+            </h2>
+            <div className="space-y-2">
+              {Object.entries(envVars).map(([key, value]) => (
+                <div key={key} className="flex">
+                  <span className="w-32 text-slate-400 font-mono text-sm">{key}:</span>
+                  <span className="text-white font-mono text-sm break-all">{value || 'Not set'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [apps, setApps] = useState<ArgoApp[]>([]);
   const [loading, setLoading] = useState(false);
@@ -273,7 +461,7 @@ const App: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [awsProfile, setAwsProfile] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'argocd' | 'rollouts' | 'secrets'>('argocd');
+  const [activeTab, setActiveTab] = useState<'argocd' | 'rollouts' | 'secrets' | 'environment'>('argocd');
 
   const loadAWSProfile = async () => {
     try {
@@ -599,6 +787,16 @@ const App: React.FC = () => {
             >
               Secrets
             </button>
+            <button
+              onClick={() => setActiveTab('environment')}
+              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'environment'
+                  ? 'border-green-500 text-green-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              Environment
+            </button>
           </div>
         </div>
       </div>
@@ -606,7 +804,8 @@ const App: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'argocd' ? <ArgocdInterface /> : 
        activeTab === 'rollouts' ? <Rollouts /> : 
-       <Secrets />}
+       activeTab === 'secrets' ? <Secrets /> :
+       <EnvironmentConfig />}
     </div>
   );
 };
