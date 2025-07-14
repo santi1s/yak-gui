@@ -278,10 +278,6 @@ func (a *App) GetArgoApps(config ArgoConfig) ([]ArgoApp, error) {
 	// Parse JSON output from your CLI
 	var statusData map[string]interface{}
 	if err := json.Unmarshal(output, &statusData); err != nil {
-		truncatedOutput := outputStr
-		if len(outputStr) > 200 {
-			truncatedOutput = outputStr[:200]
-		}
 		return nil, fmt.Errorf("failed to parse yak output: %w", err)
 	}
 	
@@ -450,10 +446,6 @@ func (a *App) GetRollouts(config KubernetesConfig) ([]RolloutListItem, error) {
 		Items []map[string]interface{} `json:"items"`
 	}
 	if err := json.Unmarshal(output, &listResponse); err != nil {
-		truncatedOutput := outputStr
-		if len(outputStr) > 200 {
-			truncatedOutput = outputStr[:200]
-		}
 		return nil, fmt.Errorf("failed to parse yak rollouts output: %w", err)
 	}
 
@@ -725,11 +717,6 @@ func (a *App) GetSecrets(config SecretConfig, path string) ([]SecretListItem, er
 		// If that fails, try to parse as a map/object
 		var secretMap map[string]interface{}
 		if mapErr := json.Unmarshal(output, &secretMap); mapErr != nil {
-			// If both fail, log the output for debugging
-			truncatedOutput := outputStr
-			if len(outputStr) > 200 {
-				truncatedOutput = outputStr[:200]
-			}
 			return nil, fmt.Errorf("failed to parse yak secret output: %w", err)
 		}
 		
