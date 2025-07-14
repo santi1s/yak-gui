@@ -9,7 +9,6 @@ import {
   KeyIcon,
   LockClosedIcon,
   FolderIcon,
-  DocumentTextIcon,
   ExclamationTriangleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
@@ -71,24 +70,6 @@ interface JWTServerConfig {
   clientSecret: string;
 }
 
-// Declare global functions for Wails
-declare global {
-  interface Window {
-    go: {
-      main: {
-        App: {
-          GetSecrets: (config: SecretConfig, path: string) => Promise<SecretListItem[]>;
-          GetSecretData: (config: SecretConfig, path: string, version: number) => Promise<SecretData>;
-          CreateSecret: (config: SecretConfig, path: string, owner: string, usage: string, source: string, data: Record<string, string>) => Promise<void>;
-          UpdateSecret: (config: SecretConfig, path: string, data: Record<string, string>) => Promise<void>;
-          DeleteSecret: (config: SecretConfig, path: string, version: number) => Promise<void>;
-          CreateJWTClient: (config: JWTClientConfig) => Promise<void>;
-          CreateJWTServer: (config: JWTServerConfig) => Promise<void>;
-        };
-      };
-    };
-  }
-}
 
 const SecretCard: React.FC<{ 
   secret: SecretListItem; 
@@ -98,9 +79,7 @@ const SecretCard: React.FC<{
   onEdit: (secret: SecretListItem) => void;
   onDelete: (secret: SecretListItem) => void;
   onNavigate: (path: string) => void;
-}> = ({ secret, config, onAction, onView, onEdit, onDelete, onNavigate }) => {
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
+}> = ({ secret, onView, onEdit, onDelete, onNavigate }) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Unknown';
     try {

@@ -33,12 +33,13 @@ interface ArgoConfig {
   password?: string;
 }
 
-// Declare global functions for Wails
+// Declare global functions for Wails - consolidated interface for all components
 declare global {
   interface Window {
     go: {
       main: {
         App: {
+          // ArgoCD functions
           GetArgoApps: (config: ArgoConfig) => Promise<ArgoApp[]>;
           SyncArgoApp: (config: ArgoConfig, appName: string, prune: boolean, dryRun: boolean) => Promise<void>;
           RefreshArgoApp: (config: ArgoConfig, appName: string) => Promise<void>;
@@ -67,6 +68,9 @@ declare global {
           CreateSecret: (config: any, path: string, owner: string, usage: string, source: string, data: Record<string, string>) => Promise<void>;
           UpdateSecret: (config: any, path: string, data: Record<string, string>) => Promise<void>;
           DeleteSecret: (config: any, path: string, version: number) => Promise<void>;
+          // JWT functions
+          CreateJWTClient: (config: any) => Promise<void>;
+          CreateJWTServer: (config: any) => Promise<void>;
         };
       };
     };
@@ -114,7 +118,6 @@ const AppCard: React.FC<{
   config: ArgoConfig;
   onAction: () => void;
 }> = ({ app, config, onAction }) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const handleSync = async () => {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowPathIcon, 
-  PlayIcon, 
   PauseIcon, 
   StopIcon,
   ExclamationTriangleIcon,
@@ -49,25 +48,6 @@ interface RolloutStatus {
 interface KubernetesConfig {
   server: string;
   namespace: string;
-}
-
-// Declare global functions for Wails
-declare global {
-  interface Window {
-    go: {
-      main: {
-        App: {
-          GetRollouts: (config: KubernetesConfig) => Promise<RolloutListItem[]>;
-          GetRolloutStatus: (config: KubernetesConfig, rolloutName: string) => Promise<RolloutStatus>;
-          PromoteRollout: (config: KubernetesConfig, rolloutName: string, full: boolean) => Promise<void>;
-          PauseRollout: (config: KubernetesConfig, rolloutName: string) => Promise<void>;
-          AbortRollout: (config: KubernetesConfig, rolloutName: string) => Promise<void>;
-          RestartRollout: (config: KubernetesConfig, rolloutName: string) => Promise<void>;
-          SetRolloutImage: (config: KubernetesConfig, rolloutName: string, image: string, container: string) => Promise<void>;
-        };
-      };
-    };
-  }
 }
 
 const StatusBadge: React.FC<{ status: string, type: 'status' | 'strategy' }> = ({ status, type }) => {
@@ -341,7 +321,6 @@ const RolloutCard: React.FC<{
   config: KubernetesConfig;
   onAction: () => void;
 }> = ({ rollout, config, onAction }) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
