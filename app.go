@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -203,12 +205,45 @@ func (a *App) GetCurrentAWSProfile() string {
 	return os.Getenv("AWS_PROFILE")
 }
 
-// SetAWSProfile sets the AWS_PROFILE environment variable for the current session
+// SetAWSProfile sets the AWS_PROFILE environment variable and auto-configures KUBECONFIG and kubectl context
 func (a *App) SetAWSProfile(profile string) error {
 	if profile == "" {
 		return fmt.Errorf("AWS profile cannot be empty")
 	}
-	return os.Setenv("AWS_PROFILE", profile)
+	
+	// Set AWS_PROFILE
+	if err := os.Setenv("AWS_PROFILE", profile); err != nil {
+		return fmt.Errorf("failed to set AWS_PROFILE: %v", err)
+	}
+	
+	// Auto-generate KUBECONFIG path if TFINFRA_REPOSITORY_PATH is available
+	tfRepoPath := os.Getenv("TFINFRA_REPOSITORY_PATH")
+	if tfRepoPath != "" {
+		kubeconfigPath := filepath.Join(tfRepoPath, "setup", "k8senv", profile, "config")
+		
+		// Check if the kubeconfig file exists
+		if _, err := os.Stat(kubeconfigPath); err == nil {
+			// Set KUBECONFIG
+			if err := os.Setenv("KUBECONFIG", kubeconfigPath); err != nil {
+				return fmt.Errorf("failed to set KUBECONFIG: %v", err)
+			}
+			
+			// Set kubectl context to match the profile
+			cmd := exec.Command("kubectl", "config", "use-context", profile)
+			cmd.Env = os.Environ() // Use current environment including updated KUBECONFIG
+			
+			if output, err := cmd.CombinedOutput(); err != nil {
+				// Don't fail the whole operation if kubectl context setting fails
+				fmt.Printf("Warning: failed to set kubectl context to %s: %v\nOutput: %s\n", profile, err, string(output))
+			}
+		} else {
+			fmt.Printf("Warning: kubeconfig file not found at %s\n", kubeconfigPath)
+		}
+	} else {
+		fmt.Println("Warning: TFINFRA_REPOSITORY_PATH environment variable not set, cannot auto-configure KUBECONFIG")
+	}
+	
+	return nil
 }
 
 // GetKubeconfig returns the current KUBECONFIG environment variable
@@ -224,13 +259,143 @@ func (a *App) SetKubeconfig(path string) error {
 	return os.Setenv("KUBECONFIG", path)
 }
 
+// SetPATH sets the PATH environment variable for the current session
+func (a *App) SetPATH(path string) error {
+	if path == "" {
+		return fmt.Errorf("PATH cannot be empty")
+	}
+	return os.Setenv("PATH", path)
+}
+
+// SetTfInfraRepositoryPath sets the TFINFRA_REPOSITORY_PATH environment variable for the current session
+func (a *App) SetTfInfraRepositoryPath(path string) error {
+	if path == "" {
+		return fmt.Errorf("TFINFRA_REPOSITORY_PATH cannot be empty")
+	}
+	return os.Setenv("TFINFRA_REPOSITORY_PATH", path)
+}
+
+// GetAWSProfiles reads ~/.aws/config and returns available profiles (excluding -sso profiles)
+func (a *App) GetAWSProfiles() ([]string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user home directory: %v", err)
+	}
+	
+	configPath := filepath.Join(homeDir, ".aws", "config")
+	file, err := os.Open(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil // Return empty list if config doesn't exist
+		}
+		return nil, fmt.Errorf("failed to open AWS config file: %v", err)
+	}
+	defer file.Close()
+	
+	var profiles []string
+	scanner := bufio.NewScanner(file)
+	
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		
+		// Look for profile sections: [profile profile-name] or [default]
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			line = strings.Trim(line, "[]")
+			
+			var profileName string
+			if line == "default" {
+				profileName = "default"
+			} else if strings.HasPrefix(line, "profile ") {
+				profileName = strings.TrimPrefix(line, "profile ")
+			} else {
+				continue // Skip non-profile sections
+			}
+			
+			// Exclude profiles ending with -sso
+			if !strings.HasSuffix(profileName, "-sso") {
+				profiles = append(profiles, profileName)
+			}
+		}
+	}
+	
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading AWS config file: %v", err)
+	}
+	
+	// Sort profiles for consistent ordering
+	sort.Strings(profiles)
+	return profiles, nil
+}
+
+// GetShellPATH attempts to get PATH from common shell configuration files
+func (a *App) GetShellPATH() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %v", err)
+	}
+	
+	// Common shell config files to check (in order of preference)
+	configFiles := []string{
+		".zshrc",
+		".bashrc", 
+		".bash_profile",
+		".profile",
+	}
+	
+	// Try to detect shell from environment
+	shell := os.Getenv("SHELL")
+	if strings.Contains(shell, "zsh") {
+		// For zsh, also check .zprofile
+		configFiles = append([]string{".zshrc", ".zprofile"}, configFiles[1:]...)
+	}
+	
+	// Look for PATH exports in shell config files
+	for _, configFile := range configFiles {
+		configPath := filepath.Join(homeDir, configFile)
+		file, err := os.Open(configPath)
+		if err != nil {
+			continue // Skip if file doesn't exist
+		}
+		defer file.Close()
+		
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			
+			// Look for PATH exports (various formats)
+			if strings.HasPrefix(line, "export PATH=") {
+				path := strings.TrimPrefix(line, "export PATH=")
+				path = strings.Trim(path, "\"'") // Remove quotes
+				return path, nil
+			} else if strings.HasPrefix(line, "PATH=") {
+				path := strings.TrimPrefix(line, "PATH=")
+				path = strings.Trim(path, "\"'") // Remove quotes
+				return path, nil
+			}
+		}
+	}
+	
+	// Fallback to common macOS paths if we can't find it in config files
+	commonPaths := []string{
+		"/opt/homebrew/bin",
+		"/usr/local/bin", 
+		"/usr/bin",
+		"/bin",
+		"/usr/sbin",
+		"/sbin",
+	}
+	
+	return strings.Join(commonPaths, ":"), nil
+}
+
 // GetEnvironmentVariables returns a map of current environment variables
 func (a *App) GetEnvironmentVariables() map[string]string {
 	return map[string]string{
-		"AWS_PROFILE": os.Getenv("AWS_PROFILE"),
-		"KUBECONFIG":  os.Getenv("KUBECONFIG"),
-		"HOME":        os.Getenv("HOME"),
-		"PATH":        os.Getenv("PATH"),
+		"AWS_PROFILE":              os.Getenv("AWS_PROFILE"),
+		"KUBECONFIG":               os.Getenv("KUBECONFIG"),
+		"HOME":                     os.Getenv("HOME"),
+		"PATH":                     os.Getenv("PATH"),
+		"TFINFRA_REPOSITORY_PATH":  os.Getenv("TFINFRA_REPOSITORY_PATH"),
 	}
 }
 
@@ -514,16 +679,16 @@ func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*Ro
 		return nil, fmt.Errorf("rollout name is required")
 	}
 
-	// Build yak command
-	args := []string{"rollouts", "status", "-r", rolloutName, "--json"}
+	// Build yak command - use 'get' instead of 'status' to get JSON object
+	args := []string{"rollouts", "get", "-r", rolloutName, "--json"}
 	if config.Server != "" {
 		args = append(args, "--server", config.Server)
 	}
 	if config.Namespace != "" {
-		args = append(args, "--namespace", config.Namespace)
+		args = append(args, "-n", config.Namespace)
 	}
 
-	// Execute yak rollouts status with timeout
+	// Execute yak rollouts get with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
@@ -533,15 +698,23 @@ func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*Ro
 	output, err := cmd.Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("yak rollouts status failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
+			return nil, fmt.Errorf("yak rollouts get failed with exit code %d: %s", exitError.ExitCode(), string(exitError.Stderr))
 		}
-		return nil, fmt.Errorf("failed to execute yak rollouts status: %w", err)
+		return nil, fmt.Errorf("failed to execute yak rollouts get: %w", err)
 	}
 
+	// Debug: log the raw output to understand what we're getting
+	fmt.Printf("DEBUG: yak rollouts get raw output: %s\n", string(output))
+	
 	// Parse JSON output - expecting a Kubernetes object
 	var rolloutObj map[string]interface{}
 	if err := json.Unmarshal(output, &rolloutObj); err != nil {
-		return nil, fmt.Errorf("failed to parse rollout status: %w", err)
+		// Include the raw output in the error for debugging
+		outputPreview := string(output)
+		if len(outputPreview) > 200 {
+			outputPreview = outputPreview[:200] + "..."
+		}
+		return nil, fmt.Errorf("failed to parse rollout status (raw output: %s): %w", outputPreview, err)
 	}
 
 	// Extract metadata, spec, and status
