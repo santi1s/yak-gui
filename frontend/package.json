@@ -1,6 +1,6 @@
 {
   "name": "yak-gui-frontend",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "type": "module",
   "description": "Comprehensive GUI Frontend for Yak CLI - ArgoCD, secrets, rollouts, certificates, and more",
   "main": "index.js",
