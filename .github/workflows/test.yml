@@ -3,8 +3,22 @@ name: Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/release-please.yml'
+      - '.github/workflows/release.yml'
+      - '.release-please-config.json'
+      - '.release-please-manifest.json'
+      - 'CHANGELOG.md'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/release-please.yml'
+      - '.github/workflows/release.yml'
+      - '.release-please-config.json'
+      - '.release-please-manifest.json'
+      - 'CHANGELOG.md'
 
 env:
   GO_VERSION: '1.24'
