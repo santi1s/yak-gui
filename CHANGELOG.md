@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/santi1s/yak-gui/compare/v1.6.0...v1.7.0) (2025-07-15)
+
+
+### Features
+
+* improve environment variable handling and fix ArgoCD profile sync ([7f88834](https://github.com/santi1s/yak-gui/commit/7f888348d7fca987f88d979f3341080c15b30b4a))
+
+
+### Bug Fixes
+
+* add explicit tag_name to release creation ([94ba7d1](https://github.com/santi1s/yak-gui/commit/94ba7d14f96bf11b1a9fd9760eb09c3a6e784681))
+* remove redundant trigger-build job from release-please ([f476cba](https://github.com/santi1s/yak-gui/commit/f476cba07a6751b9a735c3549af60632259f50d3))
+
 ## [1.6.0](https://github.com/santi1s/yak-gui/compare/v1.5.0...v1.6.0) (2025-07-15)
 
 
