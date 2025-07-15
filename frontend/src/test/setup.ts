@@ -66,12 +66,16 @@ global.window.go = {
       // Secrets mock functions
       GetSecrets: vi.fn(),
       GetSecret: vi.fn(),
+      GetSecretData: vi.fn(),
       CreateSecret: vi.fn(),
       UpdateSecret: vi.fn(),
       DeleteSecret: vi.fn(),
       CreateJWTClient: vi.fn(),
       CreateJWTServer: vi.fn(),
       ListSecrets: vi.fn(),
+      GetSecretConfigPlatforms: vi.fn().mockResolvedValue(['vault']),
+      GetSecretConfigEnvironments: vi.fn().mockResolvedValue(['dev', 'staging', 'prod']),
+      GetSecretConfigPaths: vi.fn().mockResolvedValue(['common/', 'apps/']),
       
       // Certificates mock functions
       CheckGandiToken: vi.fn(),
@@ -96,6 +100,20 @@ global.window.go = {
       SetKubeconfig: vi.fn(),
       SetPATH: vi.fn(),
       SetTfInfraRepositoryPath: vi.fn(),
+      
+      // TFE mock functions
+      GetTFEConfig: vi.fn().mockResolvedValue({ endpoint: 'app.terraform.io', organization: 'test-org' }),
+      SetTFEConfig: vi.fn().mockResolvedValue(undefined),
+      GetTFEWorkspaces: vi.fn().mockResolvedValue([]),
+      GetTFEWorkspacesByTag: vi.fn().mockResolvedValue([]),
+      ExecuteTFEPlan: vi.fn().mockResolvedValue([]),
+      GetTFERuns: vi.fn().mockResolvedValue([]),
+      LockTFEWorkspace: vi.fn().mockResolvedValue(undefined),
+      UnlockTFEWorkspace: vi.fn().mockResolvedValue(undefined),
+      SetTFEWorkspaceVersion: vi.fn().mockResolvedValue(undefined),
+      DiscardTFERuns: vi.fn().mockResolvedValue(undefined),
+      GetTFEVersions: vi.fn().mockResolvedValue([]),
+      CheckTFEDeprecatedVersions: vi.fn().mockResolvedValue({}),
       
       // Utility mock functions
       GetAppVersion: vi.fn(),

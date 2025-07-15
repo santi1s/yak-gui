@@ -128,13 +128,10 @@ func (a *App) GetAWSProfiles() ([]string, error) {
 	configPath := filepath.Join(homeDir, ".aws", "config")
 	
 	// Debug logging to help troubleshoot Finder launch issues
-	fmt.Printf("DEBUG: Looking for AWS config at: %s\n", configPath)
-	fmt.Printf("DEBUG: Home directory: %s\n", homeDir)
 	
 	file, err := os.Open(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("DEBUG: AWS config file not found at %s\n", configPath)
 			return []string{}, nil // Return empty list if config doesn't exist
 		}
 		return nil, fmt.Errorf("failed to open AWS config file at %s: %v", configPath, err)
@@ -256,14 +253,12 @@ func (a *App) GetShellEnvironment() (map[string]string, error) {
 	var cmdErr error
 	
 	// Approach 1: Interactive login shell (most comprehensive)
-	fmt.Printf("DEBUG: Trying interactive login shell: %s -l -i -c env\n", shell)
 	cmd := exec.Command(shell, "-l", "-i", "-c", "env")
 	cmd.Dir = homeDir // Set working directory to home
 	output, cmdErr = cmd.Output()
 	
 	if cmdErr != nil {
 		// Approach 2: Login shell
-		fmt.Printf("DEBUG: Interactive failed, trying login shell: %s -l -c env\n", shell)
 		cmd = exec.Command(shell, "-l", "-c", "env")
 		cmd.Dir = homeDir
 		output, cmdErr = cmd.Output()
@@ -271,7 +266,6 @@ func (a *App) GetShellEnvironment() (map[string]string, error) {
 	
 	if cmdErr != nil {
 		// Approach 3: Source .zshrc explicitly
-		fmt.Printf("DEBUG: Login failed, trying explicit zshrc sourcing\n")
 		cmd = exec.Command(shell, "-c", "source ~/.zshrc && env")
 		cmd.Dir = homeDir
 		output, cmdErr = cmd.Output()
@@ -294,20 +288,6 @@ func (a *App) GetShellEnvironment() (map[string]string, error) {
 		}
 	}
 	
-	// Debug: Print some key variables we found
-	fmt.Printf("DEBUG: Found %d environment variables\n", len(envVars))
-	for _, key := range []string{"PATH", "AWS_PROFILE", "TFINFRA_REPOSITORY_PATH", "HOME", "GANDI_TOKEN"} {
-		if value, exists := envVars[key]; exists {
-			// Don't log sensitive tokens in full, just first/last chars
-			if key == "GANDI_TOKEN" && len(value) > 8 {
-				fmt.Printf("DEBUG: %s=%s...%s\n", key, value[:4], value[len(value)-4:])
-			} else {
-				fmt.Printf("DEBUG: %s=%s\n", key, value)
-			}
-		} else {
-			fmt.Printf("DEBUG: %s not found in shell environment\n", key)
-		}
-	}
 	
 	return envVars, nil
 }
@@ -353,11 +333,6 @@ func (a *App) GetEnvironmentVariables() map[string]string {
 		"GANDI_TOKEN":              maskSensitiveValue(os.Getenv("GANDI_TOKEN")),
 	}
 	
-	// Debug logging to help troubleshoot Finder launch issues
-	fmt.Printf("DEBUG: Environment variables when called:\n")
-	for key, value := range envVars {
-		fmt.Printf("  %s=%s\n", key, value)
-	}
 	
 	return envVars
 }

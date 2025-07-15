@@ -6,6 +6,8 @@ export function AbortRollout(arg1:main.KubernetesConfig,arg2:string):Promise<voi
 
 export function CheckGandiToken():Promise<main.CertificateOperation>;
 
+export function CheckTFEDeprecatedVersions(arg1:main.TFEConfig,arg2:string,arg3:string,arg4:boolean):Promise<Record<string, any>>;
+
 export function CreateJWTClient(arg1:main.JWTClientConfig):Promise<void>;
 
 export function CreateJWTServer(arg1:main.JWTServerConfig):Promise<void>;
@@ -17,6 +19,10 @@ export function DeleteEnvironmentProfile(arg1:string):Promise<void>;
 export function DeleteSecret(arg1:main.SecretConfig,arg2:string,arg3:number):Promise<void>;
 
 export function DescribeCertificateSecret(arg1:string,arg2:number,arg3:number):Promise<main.CertificateOperation>;
+
+export function DiscardTFERuns(arg1:main.TFEConfig,arg2:number,arg3:boolean,arg4:boolean,arg5:boolean):Promise<void>;
+
+export function ExecuteTFEPlan(arg1:main.TFEConfig,arg2:main.TFEPlanExecution):Promise<Array<main.TFEPlanResult>>;
 
 export function GetAWSProfiles():Promise<Array<string>>;
 
@@ -58,6 +64,16 @@ export function GetShellEnvironment():Promise<Record<string, string>>;
 
 export function GetShellPATH():Promise<string>;
 
+export function GetTFEConfig():Promise<main.TFEConfig>;
+
+export function GetTFERuns(arg1:main.TFEConfig,arg2:string):Promise<Array<main.TFERun>>;
+
+export function GetTFEVersions(arg1:main.TFEConfig):Promise<Array<main.TFEVersionInfo>>;
+
+export function GetTFEWorkspaces(arg1:main.TFEConfig):Promise<Array<main.TFEWorkspace>>;
+
+export function GetTFEWorkspacesByTag(arg1:main.TFEConfig,arg2:string,arg3:boolean):Promise<Array<main.TFEWorkspace>>;
+
 export function Greet(arg1:string):Promise<string>;
 
 export function ImportShellEnvironment():Promise<void>;
@@ -71,6 +87,8 @@ export function ListCertificates():Promise<Array<string>>;
 export function LoadEnvironmentProfile(arg1:string):Promise<void>;
 
 export function LoadSecretConfig():Promise<main.YakSecretConfig>;
+
+export function LockTFEWorkspace(arg1:main.TFEConfig,arg2:Array<string>,arg3:boolean):Promise<void>;
 
 export function LoginToArgoCD(arg1:main.ArgoConfig):Promise<void>;
 
@@ -102,6 +120,10 @@ export function SetPATH(arg1:string):Promise<void>;
 
 export function SetRolloutImage(arg1:main.KubernetesConfig,arg2:string,arg3:string,arg4:string):Promise<void>;
 
+export function SetTFEConfig(arg1:main.TFEConfig):Promise<void>;
+
+export function SetTFEWorkspaceVersion(arg1:main.TFEConfig,arg2:Array<string>,arg3:string):Promise<void>;
+
 export function SetTfInfraRepositoryPath(arg1:string):Promise<void>;
 
 export function SuspendArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
@@ -109,6 +131,8 @@ export function SuspendArgoApp(arg1:main.ArgoConfig,arg2:string):Promise<void>;
 export function SyncArgoApp(arg1:main.ArgoConfig,arg2:string,arg3:boolean,arg4:boolean):Promise<void>;
 
 export function TestSimpleArray():Promise<Array<string>>;
+
+export function UnlockTFEWorkspace(arg1:main.TFEConfig,arg2:Array<string>,arg3:boolean):Promise<void>;
 
 export function UnmaximizeWindow():Promise<void>;
 

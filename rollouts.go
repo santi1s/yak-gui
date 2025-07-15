@@ -147,7 +147,6 @@ func (a *App) GetRolloutStatus(config KubernetesConfig, rolloutName string) (*Ro
 	}
 
 	// Debug: log the raw output to understand what we're getting
-	fmt.Printf("DEBUG: yak rollouts get raw output: %s\n", string(output))
 	
 	// Parse JSON output - expecting a Kubernetes object
 	var rolloutObj map[string]interface{}

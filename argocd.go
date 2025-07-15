@@ -136,7 +136,6 @@ func (a *App) GetArgoAppDetail(config ArgoConfig, appName string) (*ArgoAppDetai
 		statusArgs = append(statusArgs, "--project", config.Project)
 	}
 
-	fmt.Printf("DEBUG: yak argocd status command: %v\n", statusArgs)
 
 	// Execute yak argocd status --json with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -154,7 +153,6 @@ func (a *App) GetArgoAppDetail(config ArgoConfig, appName string) (*ArgoAppDetai
 		return nil, fmt.Errorf("failed to execute yak argocd status: %w", err)
 	}
 
-	fmt.Printf("DEBUG: yak argocd status raw output: %s\n", string(statusOutput))
 
 	// Parse JSON output from yak argocd status
 	var statusData map[string]interface{}
@@ -186,7 +184,6 @@ func (a *App) GetArgoAppDetail(config ArgoConfig, appName string) (*ArgoAppDetai
 		getArgs = append(getArgs, "--project", config.Project)
 	}
 
-	fmt.Printf("DEBUG: yak argocd get command: %v\n", getArgs)
 
 	getCmd := exec.CommandContext(ctx, findYakExecutable(), getArgs...)
 	getOutput, err := getCmd.Output()
@@ -200,7 +197,6 @@ func (a *App) GetArgoAppDetail(config ArgoConfig, appName string) (*ArgoAppDetai
 		return nil, fmt.Errorf("failed to execute yak argocd get: %w", err)
 	}
 
-	fmt.Printf("DEBUG: yak argocd get raw output: %s\n", string(getOutput))
 
 	// Parse JSON output from yak argocd get
 	var appDetailData map[string]interface{}

@@ -267,7 +267,6 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 		return nil, fmt.Errorf("secret path is required")
 	}
 
-	fmt.Printf("DEBUG: GetSecretData called with path='%s', version=%d\n", path, version)
 
 	// Build yak command
 	args := []string{"secret", "get", "--json", "--path", path}
@@ -281,7 +280,6 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 		args = append(args, "--version", fmt.Sprintf("%d", version))
 	}
 
-	fmt.Printf("DEBUG: yak secret get command: %v\n", args)
 
 	// Execute yak secret get with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -297,7 +295,6 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 		return nil, fmt.Errorf("failed to execute yak secret get: %w", err)
 	}
 
-	fmt.Printf("DEBUG: yak secret get raw output: %s\n", string(output))
 
 	// Parse JSON output - yak secret get returns the vault response format
 	var vaultResponse map[string]interface{}
@@ -327,7 +324,6 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 	
 	// Extract secret data from root-level "data" section
 	if dataSection, ok := vaultResponse["data"].(map[string]interface{}); ok {
-		fmt.Printf("DEBUG: Found data section with keys: %v\n", getMapKeysFromInterface(dataSection))
 		for key, value := range dataSection {
 			if strValue, ok := value.(string); ok {
 				secretData.Data[key] = strValue
@@ -340,7 +336,6 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 	
 	// Extract metadata from root-level "metadata" section
 	if metadataSection, ok := vaultResponse["metadata"].(map[string]interface{}); ok {
-		fmt.Printf("DEBUG: Found metadata section with keys: %v\n", getMapKeysFromInterface(metadataSection))
 		
 		// Safely extract metadata fields
 		if version := getInt(metadataSection, "version"); version > 0 {
@@ -356,34 +351,21 @@ func (a *App) GetSecretData(config SecretConfig, path string, version int) (*Sec
 		
 		// Extract custom metadata (owner, usage, source) if available
 		if customMetadata, ok := metadataSection["custom_metadata"].(map[string]interface{}); ok {
-			fmt.Printf("DEBUG: Found custom_metadata with keys: %v\n", getMapKeysFromInterface(customMetadata))
-			fmt.Printf("DEBUG: custom_metadata content: %+v\n", customMetadata)
 			if owner := getString(customMetadata, "owner"); owner != "" {
-				fmt.Printf("DEBUG: Extracted owner: %s\n", owner)
 				secretData.Metadata.Owner = owner
 			} else {
-				fmt.Printf("DEBUG: Owner not found or empty in custom_metadata\n")
 			}
 			if usage := getString(customMetadata, "usage"); usage != "" {
-				fmt.Printf("DEBUG: Extracted usage: %s\n", usage)
 				secretData.Metadata.Usage = usage
 			} else {
-				fmt.Printf("DEBUG: Usage not found or empty in custom_metadata\n")
 			}
 			if source := getString(customMetadata, "source"); source != "" {
-				fmt.Printf("DEBUG: Extracted source: %s\n", source)
 				secretData.Metadata.Source = source
 			} else {
-				fmt.Printf("DEBUG: Source not found or empty in custom_metadata\n")
 			}
 		} else {
-			fmt.Printf("DEBUG: No custom_metadata found in metadata section\n")
-			fmt.Printf("DEBUG: metadata section keys: %v\n", getMapKeysFromInterface(metadataSection))
-			fmt.Printf("DEBUG: metadata section content: %+v\n", metadataSection)
 		}
 	} else {
-		fmt.Printf("DEBUG: No metadata section found at root level\n")
-		fmt.Printf("DEBUG: Root response keys: %v\n", getMapKeys(vaultResponse))
 	}
 
 	return &secretData, nil
@@ -654,7 +636,6 @@ func (a *App) GetSecretConfigPaths(platform, environment string) ([]string, erro
 	}
 	args = append(args, "--json")
 	
-	fmt.Printf("DEBUG: yak secret list command: %v\n", args)
 	
 	// Execute yak secret list with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -665,11 +646,9 @@ func (a *App) GetSecretConfigPaths(platform, environment string) ([]string, erro
 	output, err := cmd.Output()
 	if err != nil {
 		// If command fails, return empty path as fallback
-		fmt.Printf("DEBUG: yak secret list failed: %v\n", err)
 		return []string{""}, nil
 	}
 	
-	fmt.Printf("DEBUG: yak secret list raw output: %s\n", string(output))
 	
 	// Parse JSON output - yak secret list returns {keys: [...]}
 	var secretsResponse struct {
@@ -677,11 +656,9 @@ func (a *App) GetSecretConfigPaths(platform, environment string) ([]string, erro
 	}
 	if err := json.Unmarshal(output, &secretsResponse); err != nil {
 		// If parsing fails, return empty path as fallback
-		fmt.Printf("DEBUG: failed to parse secret list output: %v\n", err)
 		return []string{""}, nil
 	}
 	
-	fmt.Printf("DEBUG: parsed %d keys from list\n", len(secretsResponse.Keys))
 	
 	// Extract paths that end with "/"
 	pathsSet := make(map[string]bool)
@@ -689,7 +666,6 @@ func (a *App) GetSecretConfigPaths(platform, environment string) ([]string, erro
 	
 	for _, key := range secretsResponse.Keys {
 		if strings.HasSuffix(key, "/") {
-			fmt.Printf("DEBUG: found directory path: %s\n", key)
 			pathsSet[key] = true
 		}
 	}
@@ -701,7 +677,6 @@ func (a *App) GetSecretConfigPaths(platform, environment string) ([]string, erro
 	}
 	
 	sort.Strings(paths)
-	fmt.Printf("DEBUG: final paths: %+v\n", paths)
 	return paths, nil
 }
 

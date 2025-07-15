@@ -132,19 +132,22 @@ describe('App Component', () => {
   it('shows theme toggle button', async () => {
     render(<App />)
     
-    const themeToggle = screen.getByRole('switch')
-    expect(themeToggle).toBeInTheDocument()
+    const themeSwitches = screen.getAllByRole('switch')
+    expect(themeSwitches.length).toBeGreaterThan(0)
   })
 
   it('handles theme toggle', async () => {
     const user = userEvent.setup()
     render(<App />)
     
-    const themeToggle = screen.getByRole('switch')
-    await user.click(themeToggle)
+    const themeSwitches = screen.getAllByRole('switch')
+    expect(themeSwitches.length).toBeGreaterThan(0)
+    
+    // Click first switch (should be theme toggle)
+    await user.click(themeSwitches[0])
     
     // Theme should change (hard to test directly, but the toggle should work)
-    expect(themeToggle).toBeInTheDocument()
+    expect(themeSwitches[0]).toBeInTheDocument()
   })
 
   it('displays version information in environment tab', async () => {

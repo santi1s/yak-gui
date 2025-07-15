@@ -10,6 +10,10 @@ export function CheckGandiToken() {
   return window['go']['main']['App']['CheckGandiToken']();
 }
 
+export function CheckTFEDeprecatedVersions(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['CheckTFEDeprecatedVersions'](arg1, arg2, arg3, arg4);
+}
+
 export function CreateJWTClient(arg1) {
   return window['go']['main']['App']['CreateJWTClient'](arg1);
 }
@@ -32,6 +36,14 @@ export function DeleteSecret(arg1, arg2, arg3) {
 
 export function DescribeCertificateSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['DescribeCertificateSecret'](arg1, arg2, arg3);
+}
+
+export function DiscardTFERuns(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['DiscardTFERuns'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function ExecuteTFEPlan(arg1, arg2) {
+  return window['go']['main']['App']['ExecuteTFEPlan'](arg1, arg2);
 }
 
 export function GetAWSProfiles() {
@@ -114,6 +126,26 @@ export function GetShellPATH() {
   return window['go']['main']['App']['GetShellPATH']();
 }
 
+export function GetTFEConfig() {
+  return window['go']['main']['App']['GetTFEConfig']();
+}
+
+export function GetTFERuns(arg1, arg2) {
+  return window['go']['main']['App']['GetTFERuns'](arg1, arg2);
+}
+
+export function GetTFEVersions(arg1) {
+  return window['go']['main']['App']['GetTFEVersions'](arg1);
+}
+
+export function GetTFEWorkspaces(arg1) {
+  return window['go']['main']['App']['GetTFEWorkspaces'](arg1);
+}
+
+export function GetTFEWorkspacesByTag(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetTFEWorkspacesByTag'](arg1, arg2, arg3);
+}
+
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
@@ -140,6 +172,10 @@ export function LoadEnvironmentProfile(arg1) {
 
 export function LoadSecretConfig() {
   return window['go']['main']['App']['LoadSecretConfig']();
+}
+
+export function LockTFEWorkspace(arg1, arg2, arg3) {
+  return window['go']['main']['App']['LockTFEWorkspace'](arg1, arg2, arg3);
 }
 
 export function LoginToArgoCD(arg1) {
@@ -202,6 +238,14 @@ export function SetRolloutImage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['SetRolloutImage'](arg1, arg2, arg3, arg4);
 }
 
+export function SetTFEConfig(arg1) {
+  return window['go']['main']['App']['SetTFEConfig'](arg1);
+}
+
+export function SetTFEWorkspaceVersion(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetTFEWorkspaceVersion'](arg1, arg2, arg3);
+}
+
 export function SetTfInfraRepositoryPath(arg1) {
   return window['go']['main']['App']['SetTfInfraRepositoryPath'](arg1);
 }
@@ -216,6 +260,10 @@ export function SyncArgoApp(arg1, arg2, arg3, arg4) {
 
 export function TestSimpleArray() {
   return window['go']['main']['App']['TestSimpleArray']();
+}
+
+export function UnlockTFEWorkspace(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UnlockTFEWorkspace'](arg1, arg2, arg3);
 }
 
 export function UnmaximizeWindow() {

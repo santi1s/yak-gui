@@ -17,6 +17,9 @@
     "copyright": "Copyright © 2024, Doctolib",
     "description": "Comprehensive GUI for Yak CLI - Manage ArgoCD applications, secrets, rollouts, certificates, and more with a modern web interface"
   },
+  "mac": {
+    "bundleId": "com.wails.yak-gui-v2"
+  },
   "nsisType": "multiple",
   "obfuscated": false,
   "garbleargs": ""
