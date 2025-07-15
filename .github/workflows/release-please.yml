@@ -22,7 +22,9 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: .release-please-config.json
+          release-type: go
+          target-branch: main
+          manifest-file: .release-please-manifest.json
 
   # Trigger the existing release workflow when a release is created
   trigger-build:
