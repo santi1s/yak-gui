@@ -59,7 +59,7 @@ func (a *App) TestSimpleArray() []string {
 func (a *App) GetAppVersion() map[string]string {
 	return map[string]string{
 		// x-release-please-start-version
-		"version": "1.12.0",
+		"version": "1.13.0",
 		// x-release-please-end
 		"name":    "Yak GUI",
 		"description": "Comprehensive desktop GUI for yak CLI tool - manage ArgoCD, secrets, rollouts, certificates, and more",
