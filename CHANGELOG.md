@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1](https://github.com/santi1s/yak-gui/compare/v1.11.0...v1.11.1) (2025-07-15)
+
+
+### Bug Fixes
+
+* update test workflow to only run on PRs and fix failing frontend tests ([a59cf3e](https://github.com/santi1s/yak-gui/commit/a59cf3e73387d6a78d6249b73c34fc3f11005220))
+* update test workflow to only run on PRs and fix failing frontend tests ([ad2c07b](https://github.com/santi1s/yak-gui/commit/ad2c07bb63b1c95de2ffdea915799df90376b559))
+
 ## [1.11.0](https://github.com/santi1s/yak-gui/compare/v1.10.1...v1.11.0) (2025-07-15)
 
 
