@@ -70,6 +70,10 @@ export function GetEnvironmentVariables() {
   return window['go']['main']['App']['GetEnvironmentVariables']();
 }
 
+export function GetGandiToken() {
+  return window['go']['main']['App']['GetGandiToken']();
+}
+
 export function GetKubeconfig() {
   return window['go']['main']['App']['GetKubeconfig']();
 }
@@ -116,6 +120,10 @@ export function Greet(arg1) {
 
 export function ImportShellEnvironment() {
   return window['go']['main']['App']['ImportShellEnvironment']();
+}
+
+export function IsGandiTokenSet() {
+  return window['go']['main']['App']['IsGandiTokenSet']();
 }
 
 export function IsWindowMaximized() {
@@ -176,6 +184,10 @@ export function SendCertificateNotification(arg1, arg2, arg3) {
 
 export function SetAWSProfile(arg1) {
   return window['go']['main']['App']['SetAWSProfile'](arg1);
+}
+
+export function SetGandiToken(arg1) {
+  return window['go']['main']['App']['SetGandiToken'](arg1);
 }
 
 export function SetKubeconfig(arg1) {

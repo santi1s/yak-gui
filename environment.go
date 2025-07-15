@@ -19,6 +19,7 @@ type EnvironmentProfile struct {
 	Kubeconfig              string `json:"kubeconfig"`
 	PATH                    string `json:"path"`
 	TfInfraRepositoryPath   string `json:"tf_infra_repository_path"`
+	GandiToken              string `json:"gandi_token"`
 	CreatedAt               string `json:"created_at"`
 }
 
@@ -96,6 +97,25 @@ func (a *App) SetTfInfraRepositoryPath(path string) error {
 		return fmt.Errorf("TFINFRA_REPOSITORY_PATH cannot be empty")
 	}
 	return os.Setenv("TFINFRA_REPOSITORY_PATH", path)
+}
+
+// SetGandiToken sets the GANDI_TOKEN environment variable for the current session
+func (a *App) SetGandiToken(token string) error {
+	if token == "" {
+		return fmt.Errorf("GANDI_TOKEN cannot be empty")
+	}
+	return os.Setenv("GANDI_TOKEN", token)
+}
+
+// GetGandiToken returns the current GANDI_TOKEN environment variable
+func (a *App) GetGandiToken() string {
+	return os.Getenv("GANDI_TOKEN")
+}
+
+// IsGandiTokenSet returns whether GANDI_TOKEN is set without revealing the value
+func (a *App) IsGandiTokenSet() bool {
+	token := os.Getenv("GANDI_TOKEN")
+	return token != ""
 }
 
 // GetAWSProfiles reads ~/.aws/config and returns available profiles (excluding -sso profiles)
@@ -276,9 +296,14 @@ func (a *App) GetShellEnvironment() (map[string]string, error) {
 	
 	// Debug: Print some key variables we found
 	fmt.Printf("DEBUG: Found %d environment variables\n", len(envVars))
-	for _, key := range []string{"PATH", "AWS_PROFILE", "TFINFRA_REPOSITORY_PATH", "HOME"} {
+	for _, key := range []string{"PATH", "AWS_PROFILE", "TFINFRA_REPOSITORY_PATH", "HOME", "GANDI_TOKEN"} {
 		if value, exists := envVars[key]; exists {
-			fmt.Printf("DEBUG: %s=%s\n", key, value)
+			// Don't log sensitive tokens in full, just first/last chars
+			if key == "GANDI_TOKEN" && len(value) > 8 {
+				fmt.Printf("DEBUG: %s=%s...%s\n", key, value[:4], value[len(value)-4:])
+			} else {
+				fmt.Printf("DEBUG: %s=%s\n", key, value)
+			}
 		} else {
 			fmt.Printf("DEBUG: %s not found in shell environment\n", key)
 		}
@@ -301,6 +326,7 @@ func (a *App) ImportShellEnvironment() error {
 		"PATH",
 		"TFINFRA_REPOSITORY_PATH",
 		"HOME",
+		"GANDI_TOKEN",
 	}
 	
 	for _, varName := range importantVars {
@@ -316,7 +342,7 @@ func (a *App) ImportShellEnvironment() error {
 	return nil
 }
 
-// GetEnvironmentVariables returns a map of current environment variables
+// GetEnvironmentVariables returns a map of current environment variables (with sensitive values masked)
 func (a *App) GetEnvironmentVariables() map[string]string {
 	envVars := map[string]string{
 		"AWS_PROFILE":              os.Getenv("AWS_PROFILE"),
@@ -324,6 +350,7 @@ func (a *App) GetEnvironmentVariables() map[string]string {
 		"HOME":                     os.Getenv("HOME"),
 		"PATH":                     os.Getenv("PATH"),
 		"TFINFRA_REPOSITORY_PATH":  os.Getenv("TFINFRA_REPOSITORY_PATH"),
+		"GANDI_TOKEN":              maskSensitiveValue(os.Getenv("GANDI_TOKEN")),
 	}
 	
 	// Debug logging to help troubleshoot Finder launch issues
@@ -335,19 +362,31 @@ func (a *App) GetEnvironmentVariables() map[string]string {
 	return envVars
 }
 
+// maskSensitiveValue masks sensitive values by showing only first 4 and last 4 characters
+func maskSensitiveValue(value string) string {
+	if value == "" {
+		return ""
+	}
+	if len(value) <= 8 {
+		return "****" // Mask entirely if too short
+	}
+	return value[:4] + "..." + value[len(value)-4:]
+}
+
 // SaveEnvironmentProfile saves the current environment configuration as a profile
 func (a *App) SaveEnvironmentProfile(name string) error {
 	if name == "" {
 		return fmt.Errorf("profile name cannot be empty")
 	}
 	
-	// Get current environment variables
+	// Get current environment variables (DO NOT store sensitive tokens in profiles)
 	profile := EnvironmentProfile{
 		Name:                  name,
 		AWSProfile:            os.Getenv("AWS_PROFILE"),
 		Kubeconfig:            os.Getenv("KUBECONFIG"),
 		PATH:                  os.Getenv("PATH"),
 		TfInfraRepositoryPath: os.Getenv("TFINFRA_REPOSITORY_PATH"),
+		GandiToken:            "", // Never save sensitive tokens in profiles
 		CreatedAt:             time.Now().Format(time.RFC3339),
 	}
 	
@@ -448,12 +487,13 @@ func (a *App) LoadEnvironmentProfile(name string) error {
 		return fmt.Errorf("profile '%s' not found", name)
 	}
 	
-	// Apply the profile environment variables
+	// Apply the profile environment variables (skip sensitive tokens)
 	envVars := map[string]string{
 		"AWS_PROFILE":            targetProfile.AWSProfile,
 		"KUBECONFIG":             targetProfile.Kubeconfig,
 		"PATH":                   targetProfile.PATH,
 		"TFINFRA_REPOSITORY_PATH": targetProfile.TfInfraRepositoryPath,
+		// Note: GANDI_TOKEN is not restored from profiles for security
 	}
 	
 	for key, value := range envVars {

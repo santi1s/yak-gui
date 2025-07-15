@@ -36,6 +36,8 @@ export function GetEnvironmentProfiles():Promise<Array<main.EnvironmentProfile>>
 
 export function GetEnvironmentVariables():Promise<Record<string, string>>;
 
+export function GetGandiToken():Promise<string>;
+
 export function GetKubeconfig():Promise<string>;
 
 export function GetRolloutStatus(arg1:main.KubernetesConfig,arg2:string):Promise<main.RolloutStatus>;
@@ -59,6 +61,8 @@ export function GetShellPATH():Promise<string>;
 export function Greet(arg1:string):Promise<string>;
 
 export function ImportShellEnvironment():Promise<void>;
+
+export function IsGandiTokenSet():Promise<boolean>;
 
 export function IsWindowMaximized():Promise<boolean>;
 
@@ -89,6 +93,8 @@ export function SaveEnvironmentProfile(arg1:string):Promise<void>;
 export function SendCertificateNotification(arg1:string,arg2:string,arg3:string):Promise<main.CertificateOperation>;
 
 export function SetAWSProfile(arg1:string):Promise<void>;
+
+export function SetGandiToken(arg1:string):Promise<void>;
 
 export function SetKubeconfig(arg1:string):Promise<void>;
 

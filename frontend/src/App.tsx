@@ -1134,6 +1134,7 @@ const App: React.FC = () => {
     try {
       if (window.go && window.go.main && window.go.main.App) {
         const profile = await window.go.main.App.GetCurrentAWSProfile();
+        setAwsProfile(profile); // Update the awsProfile state used for display
         if (profile) {
           const server = await window.go.main.App.GetArgoCDServerFromProfile();
           setConfig(prev => ({ ...prev, server }));
@@ -1188,8 +1189,20 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadAWSProfile();
+    // Wait a bit for shell environment to load before checking AWS profile
+    const timer = setTimeout(() => {
+      updateArgoCDServer();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
+
+  // Update ArgoCD server when shell loading is complete
+  useEffect(() => {
+    if (!isShellLoading) {
+      updateArgoCDServer();
+    }
+  }, [isShellLoading]);
 
   useEffect(() => {
     if (config.server && autoRefresh) {

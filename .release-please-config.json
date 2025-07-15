@@ -2,6 +2,30 @@
   "release-type": "go",
   "include-component-in-tag": false,
   "packages": {
-    ".": {}
+    ".": {
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "frontend/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json", 
+          "path": "wails.json",
+          "jsonpath": "$.info.productVersion"
+        },
+        {
+          "type": "generic",
+          "path": "app.go",
+          "glob": true,
+          "patterns": [
+            {
+              "search": "\"version\": \"([0-9]+)\\.([0-9]+)\\.([0-9]+)\"",
+              "replace": "\"version\": \"${version}\""
+            }
+          ]
+        }
+      ]
+    }
   }
 }

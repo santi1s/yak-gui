@@ -20,6 +20,12 @@ func NewApp() *App {
 // startup is called when the app starts, before the frontend is loaded
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	
+	// Auto-import shell environment when launched from Finder
+	// This helps ensure environment variables like GANDI_TOKEN are available
+	if err := a.ImportShellEnvironment(); err != nil {
+		fmt.Printf("Warning: failed to import shell environment on startup: %v\n", err)
+	}
 }
 
 // domReady is called after front-end resources have been loaded
@@ -52,7 +58,7 @@ func (a *App) TestSimpleArray() []string {
 // GetAppVersion returns the application version information
 func (a *App) GetAppVersion() map[string]string {
 	return map[string]string{
-		"version": "1.5.0",
+		"version": "1.6.0",
 		"name":    "Yak GUI",
 		"description": "Comprehensive desktop GUI for yak CLI tool - manage ArgoCD, secrets, rollouts, certificates, and more",
 	}

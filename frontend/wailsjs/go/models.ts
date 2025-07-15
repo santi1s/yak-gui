@@ -189,6 +189,7 @@ export namespace main {
 	    kubeconfig: string;
 	    path: string;
 	    tf_infra_repository_path: string;
+	    gandi_token: string;
 	    created_at: string;
 	
 	    static createFrom(source: any = {}) {
@@ -202,6 +203,7 @@ export namespace main {
 	        this.kubeconfig = source["kubeconfig"];
 	        this.path = source["path"];
 	        this.tf_infra_repository_path = source["tf_infra_repository_path"];
+	        this.gandi_token = source["gandi_token"];
 	        this.created_at = source["created_at"];
 	    }
 	}

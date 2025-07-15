@@ -4,7 +4,7 @@
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleName</key>
-        <string>Yak ArgoCD GUI</string>
+        <string>Yak GUI</string>
         <key>CFBundleExecutable</key>
         <string>yak-gui</string>
         <key>CFBundleIdentifier</key>
