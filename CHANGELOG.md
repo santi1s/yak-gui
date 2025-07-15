@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/santi1s/yak-gui/compare/v1.10.1...v1.11.0) (2025-07-15)
+
+
+### Features
+
+* add TFE (Terraform Enterprise) backend integration with comprehensive environment filtering ([d15a54e](https://github.com/santi1s/yak-gui/commit/d15a54e83a00e820dd0559574768dbf3f5644300))
+
 ## [1.10.1](https://github.com/santi1s/yak-gui/compare/v1.10.0...v1.10.1) (2025-07-15)
 
 
