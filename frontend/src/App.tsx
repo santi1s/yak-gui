@@ -55,6 +55,9 @@ import {
 import Rollouts from './Rollouts';
 import Secrets from './Secrets';
 import Certificates from './Certificates';
+import TFE from './TFE';
+import FeatureFlagManager from './FeatureFlagManager';
+import { useFeatureFlags } from './featureFlags';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -166,6 +169,19 @@ declare global {
           RefreshCertificateSecret: (certificateName: string, jiraTicket: string) => Promise<any>;
           DescribeCertificateSecret: (certificateName: string, version: number, diffVersion: number) => Promise<any>;
           SendCertificateNotification: (certificateName: string, operationDate: string, operation: string) => Promise<any>;
+          // TFE functions
+          GetTFEConfig: () => Promise<any>;
+          SetTFEConfig: (config: any) => Promise<void>;
+          GetTFEWorkspaces: (config: any) => Promise<any[]>;
+          GetTFEWorkspacesByTag: (config: any, tag: string, not: boolean) => Promise<any[]>;
+          ExecuteTFEPlan: (config: any, execution: any) => Promise<any[]>;
+          GetTFERuns: (config: any, workspaceID: string) => Promise<any[]>;
+          LockTFEWorkspace: (config: any, workspaceNames: string[], checkStatus: boolean) => Promise<void>;
+          UnlockTFEWorkspace: (config: any, workspaceNames: string[], force: boolean) => Promise<void>;
+          SetTFEWorkspaceVersion: (config: any, workspaceNames: string[], version: string) => Promise<void>;
+          DiscardTFERuns: (config: any, ageHours: number, discardPending: boolean, dryRun: boolean, allWorkspaces: boolean) => Promise<void>;
+          GetTFEVersions: (config: any) => Promise<any[]>;
+          CheckTFEDeprecatedVersions: (config: any, versionFile: string, teamsFile: string, sendEmail: boolean) => Promise<any>;
           // Window control functions
           MaximizeWindow: () => void;
           UnmaximizeWindow: () => void;
@@ -1106,9 +1122,10 @@ const App: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [awsProfile, setAwsProfile] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'environment' | 'argocd' | 'rollouts' | 'secrets'>('environment');
+  const [activeTab, setActiveTab] = useState<'environment' | 'argocd' | 'rollouts' | 'secrets' | 'certificates' | 'tfe'>('environment');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isShellLoading, setIsShellLoading] = useState(true);
+  const [featureFlags] = useFeatureFlags();
 
   const loadAWSProfile = async () => {
     try {
@@ -1327,62 +1344,104 @@ const App: React.FC = () => {
     </div>
   );
 
-  const tabItems = [
-    {
-      key: 'environment',
-      label: (
-        <span>
-          <DesktopOutlined />
-          Environment
-        </span>
-      ),
-      children: <EnvironmentConfig onAWSProfileChange={updateArgoCDServer} onShellLoadingChange={setIsShellLoading} />,
-    },
-    {
-      key: 'argocd',
-      label: (
-        <span>
-          <CloudOutlined />
-          ArgoCD Applications
-          {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
-        </span>
-      ),
-      children: <ArgocdInterface />,
-      disabled: isShellLoading, // Disable while shell environment is loading
-    },
-    {
-      key: 'rollouts',
-      label: (
-        <span>
-          <DatabaseOutlined />
-          Argo Rollouts
-          {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
-        </span>
-      ),
-      children: <Rollouts />,
-      disabled: isShellLoading, // Disable while shell environment is loading
-    },
-    {
-      key: 'secrets',
-      label: (
-        <span>
-          <SafetyOutlined />
-          Secrets
-        </span>
-      ),
-      children: <Secrets />,
-    },
-    {
-      key: 'certificates',
-      label: (
-        <span>
-          <FileProtectOutlined />
-          Certificates
-        </span>
-      ),
-      children: <Certificates />,
-    },
-  ];
+  // Build tab items based on feature flags
+  const buildTabItems = () => {
+    const items = [];
+    
+    if (featureFlags.showEnvironmentTab) {
+      items.push({
+        key: 'environment',
+        label: (
+          <span>
+            <DesktopOutlined />
+            Environment
+          </span>
+        ),
+        children: (
+          <div>
+            <EnvironmentConfig onAWSProfileChange={updateArgoCDServer} onShellLoadingChange={setIsShellLoading} />
+            <div style={{ marginTop: '24px' }}>
+              <FeatureFlagManager />
+            </div>
+          </div>
+        ),
+      });
+    }
+    
+    if (featureFlags.showArgoCDTab) {
+      items.push({
+        key: 'argocd',
+        label: (
+          <span>
+            <CloudOutlined />
+            ArgoCD Applications
+            {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
+          </span>
+        ),
+        children: <ArgocdInterface />,
+        disabled: isShellLoading,
+      });
+    }
+    
+    if (featureFlags.showRolloutsTab) {
+      items.push({
+        key: 'rollouts',
+        label: (
+          <span>
+            <DatabaseOutlined />
+            Argo Rollouts
+            {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
+          </span>
+        ),
+        children: <Rollouts />,
+        disabled: isShellLoading,
+      });
+    }
+    
+    if (featureFlags.showSecretsTab) {
+      items.push({
+        key: 'secrets',
+        label: (
+          <span>
+            <SafetyOutlined />
+            Secrets
+          </span>
+        ),
+        children: <Secrets />,
+      });
+    }
+    
+    if (featureFlags.showCertificatesTab) {
+      items.push({
+        key: 'certificates',
+        label: (
+          <span>
+            <FileProtectOutlined />
+            Certificates
+          </span>
+        ),
+        children: <Certificates />,
+      });
+    }
+    
+    if (featureFlags.showTFETab) {
+      items.push({
+        key: 'tfe',
+        label: (
+          <span>
+            <CloudServerOutlined />
+            TFE
+            <Tag color="orange" size="small" style={{ marginLeft: '8px' }}>BETA</Tag>
+          </span>
+        ),
+        children: <TFE />,
+      });
+    }
+    
+    return items;
+  };
+
+  const tabItems = buildTabItems();
 
   return (
     <ConfigProvider
