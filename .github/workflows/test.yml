@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.24'
 
 concurrency:
   group: ${{ github.ref }}
@@ -83,8 +83,27 @@ jobs:
           cd frontend
           npm run test
 
+  test-backend:
+    name: Test backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      
+      - name: Download dependencies
+        run: go mod download
+      
+      - name: Run backend tests
+        run: go test -v ./...
+
   outcome:
-    needs: [test-gui, test-frontend]
+    needs: [test-gui, test-frontend, test-backend]
     name: "required tests passed"
     runs-on: ubuntu-latest
     if: ${{ always() }}

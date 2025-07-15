@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.5
 
 require (
+	github.com/stretchr/testify v1.10.0
 	github.com/wailsapp/wails/v2 v2.10.2
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -39,6 +40,7 @@ require (
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 // Replace with local yak module
