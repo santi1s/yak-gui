@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/santi1s/yak-gui/compare/v1.9.0...v1.10.0) (2025-07-15)
+
+
+### Features
+
+* improve Rollouts tab and fix release-please configuration ([09a3c6b](https://github.com/santi1s/yak-gui/commit/09a3c6b9cc9b5fc73a251743d052dfd29fdf60cf))
+
+
+### Bug Fixes
+
+* update Rollouts tests to match new namespace behavior ([33f6f82](https://github.com/santi1s/yak-gui/commit/33f6f82b3edcf0c4c2a3317a044034addb7e43e1))
+
 ## [1.9.0](https://github.com/santi1s/yak-gui/compare/v1.8.0...v1.9.0) (2025-07-15)
 
 
