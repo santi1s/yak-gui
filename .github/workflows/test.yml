@@ -77,6 +77,11 @@ jobs:
         run: |
           cd frontend
           npx tsc --noEmit || echo "TypeScript check completed"
+      
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm run test
 
   outcome:
     needs: [test-gui, test-frontend]
