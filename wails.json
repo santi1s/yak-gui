@@ -13,7 +13,7 @@
   "info": {
     "companyName": "Doctolib",
     "productName": "Yak GUI",
-    "productVersion": "1.12.1",
+    "productVersion": "1.13.0",
     "copyright": "Copyright © 2024, Doctolib",
     "description": "Comprehensive GUI for Yak CLI - Manage ArgoCD applications, secrets, rollouts, certificates, and more with a modern web interface"
   },
