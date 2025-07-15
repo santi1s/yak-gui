@@ -24,8 +24,8 @@ func (a *App) startup(ctx context.Context) {
 
 // domReady is called after front-end resources have been loaded
 func (a *App) domReady(ctx context.Context) {
-	// Set window title (WindowSetResizable doesn't exist in Wails v2)
-	runtime.WindowSetTitle(ctx, "Yak ArgoCD GUI")
+	// Set window title
+	runtime.WindowSetTitle(ctx, "Yak GUI")
 }
 
 // beforeClose is called when the application is about to quit
