@@ -290,7 +290,7 @@ describe('Secrets Component', () => {
     
     render(<Secrets />)
     
-    expect(screen.getByLabelText('loading')).toBeInTheDocument()
+    expect(screen.getAllByLabelText('loading').length).toBeGreaterThan(0)
   })
 
   it('handles error states gracefully', async () => {

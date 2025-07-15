@@ -455,6 +455,244 @@ export namespace main {
 	}
 	
 	
+	export class TFEConfig {
+	    endpoint: string;
+	    organization: string;
+	    token?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.endpoint = source["endpoint"];
+	        this.organization = source["organization"];
+	        this.token = source["token"];
+	    }
+	}
+	export class TFEPlanExecution {
+	    workspaceNames?: string[];
+	    owner?: string;
+	    terraformVersion: string;
+	    message?: string;
+	    wait: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEPlanExecution(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.workspaceNames = source["workspaceNames"];
+	        this.owner = source["owner"];
+	        this.terraformVersion = source["terraformVersion"];
+	        this.message = source["message"];
+	        this.wait = source["wait"];
+	    }
+	}
+	export class TFEPlanResult {
+	    workspaceName: string;
+	    runId: string;
+	    status: string;
+	    hasChanges: boolean;
+	    message?: string;
+	    error?: string;
+	    url?: string;
+	    duration?: string;
+	    // Go type: time
+	    createdAt: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEPlanResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.workspaceName = source["workspaceName"];
+	        this.runId = source["runId"];
+	        this.status = source["status"];
+	        this.hasChanges = source["hasChanges"];
+	        this.message = source["message"];
+	        this.error = source["error"];
+	        this.url = source["url"];
+	        this.duration = source["duration"];
+	        this.createdAt = this.convertValues(source["createdAt"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class TFERun {
+	    id: string;
+	    workspaceId: string;
+	    workspaceName: string;
+	    status: string;
+	    createdAt: string;
+	    message?: string;
+	    source: string;
+	    terraformVersion?: string;
+	    hasChanges: boolean;
+	    isDestroy: boolean;
+	    isConfirmable: boolean;
+	    // Go type: struct { IsConfirmable bool "json:\"isConfirmable\""; IsCancelable bool "json:\"isCancelable\""; IsDiscardable bool "json:\"isDiscardable\"" }
+	    actions: any;
+	    createdBy?: string;
+	    url?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFERun(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.workspaceId = source["workspaceId"];
+	        this.workspaceName = source["workspaceName"];
+	        this.status = source["status"];
+	        this.createdAt = source["createdAt"];
+	        this.message = source["message"];
+	        this.source = source["source"];
+	        this.terraformVersion = source["terraformVersion"];
+	        this.hasChanges = source["hasChanges"];
+	        this.isDestroy = source["isDestroy"];
+	        this.isConfirmable = source["isConfirmable"];
+	        this.actions = this.convertValues(source["actions"], Object);
+	        this.createdBy = source["createdBy"];
+	        this.url = source["url"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class TFEVCSRepo {
+	    identifier: string;
+	    branch: string;
+	    ingressSubmodules: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVCSRepo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.identifier = source["identifier"];
+	        this.branch = source["branch"];
+	        this.ingressSubmodules = source["ingressSubmodules"];
+	    }
+	}
+	export class TFEVersionInfo {
+	    version: string;
+	    status: string;
+	    isDefault: boolean;
+	    isSupported: boolean;
+	    beta: boolean;
+	    usage: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVersionInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.status = source["status"];
+	        this.isDefault = source["isDefault"];
+	        this.isSupported = source["isSupported"];
+	        this.beta = source["beta"];
+	        this.usage = source["usage"];
+	    }
+	}
+	export class TFEWorkspace {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    environment?: string;
+	    terraformVersion?: string;
+	    status: string;
+	    lastRun?: string;
+	    owner?: string;
+	    tags?: string[];
+	    organization: string;
+	    createdAt?: string;
+	    updatedAt?: string;
+	    autoApply: boolean;
+	    terraformWorking: boolean;
+	    vcsRepo?: TFEVCSRepo;
+	    variables?: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEWorkspace(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.environment = source["environment"];
+	        this.terraformVersion = source["terraformVersion"];
+	        this.status = source["status"];
+	        this.lastRun = source["lastRun"];
+	        this.owner = source["owner"];
+	        this.tags = source["tags"];
+	        this.organization = source["organization"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	        this.autoApply = source["autoApply"];
+	        this.terraformWorking = source["terraformWorking"];
+	        this.vcsRepo = this.convertValues(source["vcsRepo"], TFEVCSRepo);
+	        this.variables = source["variables"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class YakSecretConfig {
 	    Clusters: Record<string, ClusterConfig>;
 	    Platforms: Record<string, PlatformConfig>;

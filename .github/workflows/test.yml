@@ -1,18 +1,6 @@
 name: Test
 
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - '.github/workflows/release-please.yml'
-      - '.github/workflows/release.yml'
-      - '.release-please-config.json'
-      - '.release-please-manifest.json'
-      - 'CHANGELOG.md'
-      - 'frontend/package.json'
-      - 'wails.json'
-      - 'app.go'
   pull_request:
     branches: [ main ]
     paths-ignore:
