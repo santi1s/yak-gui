@@ -1,23 +1,8 @@
 {
   "release-type": "go",
+  "bootstrap-sha": "5c2a2ec7277fc8524974f68f8680f8ab5e2e4c93",
   "packages": {
     ".": {
-      "changelog-sections": [
-        {"type": "feat", "section": "Features"},
-        {"type": "fix", "section": "Bug Fixes"},
-        {"type": "perf", "section": "Performance Improvements"},
-        {"type": "revert", "section": "Reverts"},
-        {"type": "docs", "section": "Documentation"},
-        {"type": "style", "section": "Styles"},
-        {"type": "refactor", "section": "Code Refactoring"},
-        {"type": "test", "section": "Tests"},
-        {"type": "build", "section": "Build System"},
-        {"type": "ci", "section": "CI/CD"},
-        {"type": "chore", "section": "Miscellaneous"}
-      ],
-      "release-notes-config": {
-        "header": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n"
-      },
       "extra-files": [
         {
           "type": "json",
