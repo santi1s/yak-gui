@@ -15,7 +15,8 @@ import {
   Descriptions,
   Divider,
   message,
-  Tooltip
+  Tooltip,
+  Switch
 } from 'antd';
 import {
   ReloadOutlined,
@@ -253,21 +254,27 @@ const RolloutCard: React.FC<{
   const handleAction = async (action: string) => {
     setLoading(true);
     try {
+      // Use the rollout's specific namespace, not the global config namespace
+      const rolloutConfig = {
+        ...config,
+        namespace: rollout.namespace || config.namespace
+      };
+      
       switch (action) {
         case 'promote':
-          await window.go.main.App.PromoteRollout(config, rollout.name, false);
+          await window.go.main.App.PromoteRollout(rolloutConfig, rollout.name, false);
           break;
         case 'promote-full':
-          await window.go.main.App.PromoteRollout(config, rollout.name, true);
+          await window.go.main.App.PromoteRollout(rolloutConfig, rollout.name, true);
           break;
         case 'pause':
-          await window.go.main.App.PauseRollout(config, rollout.name);
+          await window.go.main.App.PauseRollout(rolloutConfig, rollout.name);
           break;
         case 'abort':
-          await window.go.main.App.AbortRollout(config, rollout.name);
+          await window.go.main.App.AbortRollout(rolloutConfig, rollout.name);
           break;
         case 'restart':
-          await window.go.main.App.RestartRollout(config, rollout.name);
+          await window.go.main.App.RestartRollout(rolloutConfig, rollout.name);
           break;
       }
       onAction();
@@ -423,6 +430,7 @@ const Rollouts: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(false);
   const [config, setConfig] = useState<KubernetesConfig>({
     server: '',
     namespace: ''
@@ -468,6 +476,14 @@ const Rollouts: React.FC = () => {
     checkWailsAndLoad();
   }, [config]);
 
+  // Auto-refresh rollouts when enabled
+  useEffect(() => {
+    if (autoRefresh && config.server) {
+      const interval = setInterval(loadRollouts, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [config.server, autoRefresh]);
+
   const filteredRollouts = rollouts.filter(rollout =>
     rollout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     rollout.namespace.toLowerCase().includes(searchTerm.toLowerCase())
@@ -485,6 +501,12 @@ const Rollouts: React.FC = () => {
         </Col>
         <Col>
           <Space>
+            <Switch
+              checked={autoRefresh}
+              onChange={setAutoRefresh}
+              checkedChildren="Auto"
+              unCheckedChildren="Manual"
+            />
             <Button 
               icon={<ReloadOutlined />}
               onClick={loadRollouts}

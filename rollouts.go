@@ -278,10 +278,20 @@ func (a *App) RestartRollout(config KubernetesConfig, rolloutName string) error 
 		args = append(args, "--namespace", config.Namespace)
 	}
 
-	// Execute yak rollouts restart
-	cmd := exec.Command(findYakExecutable(), args...)
+	// Execute yak rollouts restart with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	
-	if err := cmd.Run(); err != nil {
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("failed to restart rollout %s (exit code %d): %s", rolloutName, exitError.ExitCode(), string(output))
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("restart rollout %s timed out after 30 seconds", rolloutName)
+		}
 		return fmt.Errorf("failed to restart rollout %s: %w", rolloutName, err)
 	}
 
