@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1](https://github.com/santi1s/yak-gui/compare/v1.10.0...v1.10.1) (2025-07-15)
+
+
+### Bug Fixes
+
+* use correct tag name in release workflow ([feaff36](https://github.com/santi1s/yak-gui/commit/feaff366eb2644430e1fbb068bba651076093e44))
+
 ## [1.10.0](https://github.com/santi1s/yak-gui/compare/v1.9.0...v1.10.0) (2025-07-15)
 
 
