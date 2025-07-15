@@ -5,6 +5,8 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   build-gui:
@@ -133,5 +135,6 @@ jobs:
             yak-gui-*.tar.gz
             yak-gui-*.zip
           generate_release_notes: true
+          tag_name: v1.6.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
