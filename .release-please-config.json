@@ -28,12 +28,6 @@
           "type": "json", 
           "path": "wails.json",
           "jsonpath": "$.info.productVersion"
-        },
-        {
-          "type": "regex",
-          "path": "app.go",
-          "searchPattern": "\"version\":\\s*\"([^\"]+)\"",
-          "replacePattern": "\"version\": \"${version}\""
         }
       ]
     }
