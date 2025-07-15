@@ -1,20 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowPathIcon, 
-  PlayIcon, 
-  PauseIcon, 
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ServerIcon,
-  CogIcon,
-  ComputerDesktopIcon,
-  FolderIcon
-} from '@heroicons/react/24/outline';
+  Layout, 
+  Tabs, 
+  Button, 
+  Card, 
+  Input, 
+  Select, 
+  Space, 
+  Typography, 
+  Alert, 
+  Spin, 
+  Switch, 
+  ConfigProvider, 
+  theme,
+  Tag,
+  Table,
+  Modal,
+  Form,
+  Popconfirm,
+  Divider,
+  Row,
+  Col,
+  Descriptions,
+  Tooltip
+} from 'antd';
+import {
+  DesktopOutlined,
+  CloudOutlined,
+  DatabaseOutlined,
+  SafetyOutlined,
+  SettingOutlined,
+  MoonOutlined,
+  SunOutlined,
+  ImportOutlined,
+  SaveOutlined,
+  LoadingOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  CopyOutlined,
+  ReloadOutlined,
+  CloudServerOutlined,
+  UserOutlined,
+  FolderOutlined,
+  ApiOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  StopOutlined,
+  EyeOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+  FileProtectOutlined
+} from '@ant-design/icons';
 import Rollouts from './Rollouts';
 import Secrets from './Secrets';
+import Certificates from './Certificates';
+
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 // Types matching the Go backend
 interface ArgoApp {
@@ -31,6 +75,25 @@ interface ArgoConfig {
   project: string;
   username?: string;
   password?: string;
+}
+
+interface ArgoAppDetail {
+  AppName: string;
+  Health: string;
+  Sync: string;
+  Suspended: boolean;
+  SyncLoop: string;
+  Conditions: string[];
+  namespace: string;
+  project: string;
+  repoUrl: string;
+  path: string;
+  targetRev: string;
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+  createdAt: string;
+  server: string;
+  cluster: string;
 }
 
 interface EnvironmentProfile {
@@ -55,6 +118,7 @@ declare global {
           SuspendArgoApp: (config: ArgoConfig, appName: string) => Promise<void>;
           UnsuspendArgoApp: (config: ArgoConfig, appName: string) => Promise<void>;
           GetArgoCDServerFromProfile: () => Promise<string>;
+          GetArgoAppDetail: (config: ArgoConfig, appName: string) => Promise<ArgoAppDetail>;
           GetCurrentAWSProfile: () => Promise<string>;
           SetAWSProfile: (profile: string) => Promise<void>;
           GetKubeconfig: () => Promise<string>;
@@ -88,208 +152,448 @@ declare global {
           CreateSecret: (config: any, path: string, owner: string, usage: string, source: string, data: Record<string, string>) => Promise<void>;
           UpdateSecret: (config: any, path: string, data: Record<string, string>) => Promise<void>;
           DeleteSecret: (config: any, path: string, version: number) => Promise<void>;
+          // Secret config functions
+          GetSecretConfigPlatforms: () => Promise<string[]>;
+          GetSecretConfigEnvironments: (platform: string) => Promise<string[]>;
+          GetSecretConfigPaths: (platform: string, environment: string) => Promise<string[]>;
           // JWT functions
           CreateJWTClient: (config: any) => Promise<void>;
           CreateJWTServer: (config: any) => Promise<void>;
+          // Certificate functions
+          CheckGandiToken: () => Promise<any>;
+          ListCertificates: () => Promise<string[]>;
+          RenewCertificate: (certificateName: string, jiraTicket: string) => Promise<any>;
+          RefreshCertificateSecret: (certificateName: string, jiraTicket: string) => Promise<any>;
+          DescribeCertificateSecret: (certificateName: string, version: number, diffVersion: number) => Promise<any>;
+          SendCertificateNotification: (certificateName: string, operationDate: string, operation: string) => Promise<any>;
+          // Window control functions
+          MaximizeWindow: () => void;
+          UnmaximizeWindow: () => void;
+          IsWindowMaximized: () => boolean;
         };
       };
     };
   }
 }
 
+// Status Badge Component
 const StatusBadge: React.FC<{ status: string, type: 'health' | 'sync' | 'syncLoop' }> = ({ status, type }) => {
-  const getStatusClass = () => {
+  const getStatusColor = () => {
     if (type === 'health') {
       switch (status.toLowerCase()) {
-        case 'healthy': return 'status-healthy';
-        case 'progressing': return 'status-progressing';
-        case 'degraded': return 'status-degraded';
-        case 'suspended': return 'status-suspended';
-        case 'missing': return 'status-missing';
-        default: return 'status-unknown';
+        case 'healthy': return 'success';
+        case 'progressing': return 'processing';
+        case 'degraded': return 'error';
+        case 'suspended': return 'warning';
+        case 'missing': return 'default';
+        default: return 'default';
       }
     } else if (type === 'sync') {
       switch (status.toLowerCase()) {
-        case 'synced': return 'status-synced';
-        case 'outofsync': return 'status-outofsync';
-        default: return 'status-unknown';
+        case 'synced': return 'success';
+        case 'outofsync': return 'error';
+        default: return 'default';
       }
     } else if (type === 'syncLoop') {
       switch (status.toLowerCase()) {
-        case 'critical': return 'sync-loop-critical';
-        case 'warning': return 'sync-loop-warning';
-        case 'possible': return 'sync-loop-possible';
-        case 'failed': return 'sync-loop-failed';
-        default: return 'bg-gray-600 text-white';
+        case 'enabled': return 'success';
+        case 'disabled': return 'default';
+        default: return 'default';
       }
     }
-    return 'bg-gray-600 text-white';
+    return 'default';
+  };
+
+  return <Tag color={getStatusColor()}>{status}</Tag>;
+};
+
+// App Card Component
+// ArgoCD App Detail Modal Component
+const ArgoAppDetailModal: React.FC<{
+  app: ArgoApp;
+  config: ArgoConfig;
+  visible: boolean;
+  onClose: () => void;
+}> = ({ app, config, visible, onClose }) => {
+  const [detailedApp, setDetailedApp] = useState<ArgoAppDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDetailedApp = async () => {
+    if (!visible || !app?.AppName) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const detail = await window.go.main.App.GetArgoAppDetail(config, app.AppName);
+      setDetailedApp(detail);
+    } catch (error) {
+      setError(`Failed to load app details: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (visible) {
+      loadDetailedApp();
+    }
+  }, [visible, app?.AppName]);
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // You can add a message here if needed
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
   };
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass()}`}>
-      {status}
-    </span>
+    <Modal
+      title={
+        <Space>
+          <ApiOutlined />
+          <span>App Details: {app.AppName}</span>
+        </Space>
+      }
+      open={visible}
+      onCancel={onClose}
+      footer={[
+        <Button key="close" onClick={onClose}>
+          Close
+        </Button>
+      ]}
+      width={800}
+    >
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px' }}>Loading app details...</div>
+        </div>
+      ) : error ? (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" onClick={loadDetailedApp}>
+              Retry
+            </Button>
+          }
+        />
+      ) : detailedApp ? (
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Descriptions column={2} bordered size="small">
+            <Descriptions.Item label="Health">
+              <StatusBadge status={detailedApp.Health} type="health" />
+            </Descriptions.Item>
+            <Descriptions.Item label="Sync">
+              <StatusBadge status={detailedApp.Sync} type="sync" />
+            </Descriptions.Item>
+            <Descriptions.Item label="Namespace">
+              <Text code>{detailedApp.namespace}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Project">
+              <Text code>{detailedApp.project}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Server">
+              <Text code>{detailedApp.server}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Cluster">
+              <Text code>{detailedApp.cluster}</Text>
+            </Descriptions.Item>
+            <Descriptions.Item label="Suspended">
+              <Tag color={detailedApp.Suspended ? 'red' : 'green'}>
+                {detailedApp.Suspended ? 'Yes' : 'No'}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Sync Loop">
+              <StatusBadge status={detailedApp.SyncLoop} type="syncLoop" />
+            </Descriptions.Item>
+            <Descriptions.Item label="Created At">
+              <Text>{detailedApp.createdAt || 'N/A'}</Text>
+            </Descriptions.Item>
+          </Descriptions>
+
+          <Card type="inner" title="Git Repository" size="small">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Text strong>Repository URL:</Text>
+                </Col>
+                <Col flex="auto" style={{ marginLeft: '8px' }}>
+                  <Text code style={{ wordBreak: 'break-all', fontSize: '12px' }}>
+                    {detailedApp.repoUrl}
+                  </Text>
+                </Col>
+                <Col>
+                  <Button
+                    type="text"
+                    icon={<CopyOutlined />}
+                    size="small"
+                    onClick={() => handleCopyToClipboard(detailedApp.repoUrl)}
+                  />
+                </Col>
+              </Row>
+              <Row justify="space-between">
+                <Col>
+                  <Text strong>Path:</Text>
+                </Col>
+                <Col>
+                  <Text code>{detailedApp.path}</Text>
+                </Col>
+              </Row>
+              <Row justify="space-between">
+                <Col>
+                  <Text strong>Target Revision:</Text>
+                </Col>
+                <Col>
+                  <Text code>{detailedApp.targetRev}</Text>
+                </Col>
+              </Row>
+            </Space>
+          </Card>
+
+          {detailedApp.Conditions && detailedApp.Conditions.length > 0 && (
+            <Card type="inner" title="Conditions" size="small">
+              <Space wrap>
+                {detailedApp.Conditions.map((condition, index) => (
+                  <Tag key={index} color="blue">
+                    {condition}
+                  </Tag>
+                ))}
+              </Space>
+            </Card>
+          )}
+
+          {detailedApp.labels && Object.keys(detailedApp.labels).length > 0 && (
+            <Card type="inner" title="Labels" size="small">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {Object.entries(detailedApp.labels).map(([key, value]) => (
+                  <Row key={key} justify="space-between">
+                    <Col>
+                      <Text strong>{key}:</Text>
+                    </Col>
+                    <Col>
+                      <Text code>{value}</Text>
+                    </Col>
+                  </Row>
+                ))}
+              </Space>
+            </Card>
+          )}
+
+          {detailedApp.annotations && Object.keys(detailedApp.annotations).length > 0 && (
+            <Card type="inner" title="Annotations" size="small">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {Object.entries(detailedApp.annotations).map(([key, value]) => (
+                  <Row key={key} justify="space-between" style={{ marginBottom: 8 }}>
+                    <Col>
+                      <Text strong>{key}:</Text>
+                    </Col>
+                    <Col flex="auto" style={{ marginLeft: '8px' }}>
+                      <Text code style={{ wordBreak: 'break-all', fontSize: '12px' }}>
+                        {value}
+                      </Text>
+                    </Col>
+                    <Col>
+                      <Button
+                        type="text"
+                        icon={<CopyOutlined />}
+                        size="small"
+                        onClick={() => handleCopyToClipboard(value)}
+                      />
+                    </Col>
+                  </Row>
+                ))}
+              </Space>
+            </Card>
+          )}
+        </Space>
+      ) : null}
+    </Modal>
   );
 };
 
-const AppCard: React.FC<{ 
-  app: ArgoApp; 
+const AppCard: React.FC<{
+  app: ArgoApp;
   config: ArgoConfig;
   onAction: () => void;
 }> = ({ app, config, onAction }) => {
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
-  const handleSync = async () => {
-    setActionLoading('sync');
+  const handleSync = async (prune: boolean = false, dryRun: boolean = false) => {
+    setLoading(true);
     try {
-      await window.go.main.App.SyncArgoApp(config, app?.AppName || '', false, false);
+      await window.go.main.App.SyncArgoApp(config, app.AppName, prune, dryRun);
       onAction();
     } catch (error) {
-      console.error('Failed to sync app:', error);
+      console.error('Sync failed:', error);
     } finally {
-      setActionLoading(null);
+      setLoading(false);
     }
   };
 
   const handleRefresh = async () => {
-    setActionLoading('refresh');
+    setLoading(true);
     try {
-      await window.go.main.App.RefreshArgoApp(config, app?.AppName || '');
+      await window.go.main.App.RefreshArgoApp(config, app.AppName);
       onAction();
     } catch (error) {
-      console.error('Failed to refresh app:', error);
+      console.error('Refresh failed:', error);
     } finally {
-      setActionLoading(null);
+      setLoading(false);
     }
   };
 
   const handleSuspend = async () => {
-    setActionLoading('suspend');
+    setLoading(true);
     try {
-      if (app?.Suspended) {
-        await window.go.main.App.UnsuspendArgoApp(config, app?.AppName || '');
+      if (app.Suspended) {
+        await window.go.main.App.UnsuspendArgoApp(config, app.AppName);
       } else {
-        await window.go.main.App.SuspendArgoApp(config, app?.AppName || '');
+        await window.go.main.App.SuspendArgoApp(config, app.AppName);
       }
       onAction();
     } catch (error) {
-      console.error('Failed to suspend/unsuspend app:', error);
+      console.error('Suspend/Unsuspend failed:', error);
     } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const getHealthIcon = () => {
-    const health = (app?.Health || '').toLowerCase();
-    switch (health) {
-      case 'healthy':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'degraded':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      case 'progressing':
-        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-      default:
-        return <ExclamationTriangleIcon className="w-5 h-5 text-gray-500" />;
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {getHealthIcon()}
-          <h3 className="text-lg font-semibold text-white">{app?.AppName || 'Unknown'}</h3>
-        </div>
-        {app?.Suspended && (
-          <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">
-            SUSPENDED
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Health:</span>
-          <StatusBadge status={app?.Health || 'Unknown'} type="health" />
-        </div>
+    <Card
+      title={
+        <Space>
+          <ApiOutlined />
+          {app.AppName}
+        </Space>
+      }
+      extra={
+        <Space>
+          <Tooltip title="View details">
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={() => setShowDetails(true)}
+              size="small"
+            />
+          </Tooltip>
+          <Tooltip title="Refresh application">
+            <Button
+              type="text"
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              loading={loading}
+              size="small"
+            />
+          </Tooltip>
+          <Tooltip title={app.Suspended ? "Resume application" : "Suspend application"}>
+            <Button
+              type="text"
+              icon={app.Suspended ? <PlayCircleOutlined /> : <PauseCircleOutlined />}
+              onClick={handleSuspend}
+              loading={loading}
+              size="small"
+            />
+          </Tooltip>
+        </Space>
+      }
+      size="small"
+      style={{ marginBottom: 16 }}
+    >
+      <Space direction="vertical" style={{ width: '100%' }}>
+        <Row justify="space-between">
+          <Col>
+            <Text type="secondary">Health:</Text>
+          </Col>
+          <Col>
+            <StatusBadge status={app.Health} type="health" />
+          </Col>
+        </Row>
         
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Sync:</span>
-          <StatusBadge status={app?.Sync || 'Unknown'} type="sync" />
-        </div>
-
-        {app?.SyncLoop && app.SyncLoop !== 'No' && (
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Sync Loop:</span>
+        <Row justify="space-between">
+          <Col>
+            <Text type="secondary">Sync:</Text>
+          </Col>
+          <Col>
+            <StatusBadge status={app.Sync} type="sync" />
+          </Col>
+        </Row>
+        
+        <Row justify="space-between">
+          <Col>
+            <Text type="secondary">Sync Loop:</Text>
+          </Col>
+          <Col>
             <StatusBadge status={app.SyncLoop} type="syncLoop" />
-          </div>
-        )}
-
-        {app?.Conditions && app.Conditions.length > 0 && (
-          <div className="flex items-start justify-between">
-            <span className="text-sm text-slate-400">Conditions:</span>
-            <div className="flex flex-wrap gap-1 max-w-48">
-              {app.Conditions.map((condition, idx) => (
-                <span key={idx} className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+          </Col>
+        </Row>
+        
+        {app.Conditions && app.Conditions.length > 0 && (
+          <div>
+            <Text type="secondary">Conditions:</Text>
+            <div style={{ marginTop: 4 }}>
+              {app.Conditions.map((condition, index) => (
+                <Tag key={index} size="small" style={{ marginBottom: 2 }}>
                   {condition}
-                </span>
+                </Tag>
               ))}
             </div>
           </div>
         )}
-      </div>
+        
+        <Space style={{ marginTop: 8 }}>
+          <Tooltip title="Synchronize application resources">
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleSync(false, false)}
+              loading={loading}
+            >
+              Sync
+            </Button>
+          </Tooltip>
+          <Tooltip title="Synchronize and remove resources not in Git">
+            <Button
+              size="small"
+              onClick={() => handleSync(true, false)}
+              loading={loading}
+            >
+              Sync + Prune
+            </Button>
+          </Tooltip>
+          <Tooltip title="Preview synchronization without applying changes">
+            <Button
+              size="small"
+              onClick={() => handleSync(false, true)}
+              loading={loading}
+            >
+              Dry Run
+            </Button>
+          </Tooltip>
+        </Space>
+      </Space>
 
-      <div className="flex space-x-2">
-        <button
-          onClick={handleSync}
-          disabled={actionLoading !== null}
-          className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-        >
-          {actionLoading === 'sync' ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <ArrowPathIcon className="w-4 h-4" />
-          )}
-          <span>Sync</span>
-        </button>
-
-        <button
-          onClick={handleRefresh}
-          disabled={actionLoading !== null}
-          className="flex items-center justify-center bg-slate-600 hover:bg-slate-700 disabled:bg-slate-800 disabled:opacity-50 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-        >
-          {actionLoading === 'refresh' ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <DocumentTextIcon className="w-4 h-4" />
-          )}
-        </button>
-
-        <button
-          onClick={handleSuspend}
-          disabled={actionLoading !== null}
-          className={`flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            app?.Suspended 
-              ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-800' 
-              : 'bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800'
-          } disabled:opacity-50 text-white`}
-        >
-          {actionLoading === 'suspend' ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : app?.Suspended ? (
-            <PlayIcon className="w-4 h-4" />
-          ) : (
-            <PauseIcon className="w-4 h-4" />
-          )}
-        </button>
-      </div>
-    </div>
+      <ArgoAppDetailModal
+        app={app}
+        config={config}
+        visible={showDetails}
+        onClose={() => setShowDetails(false)}
+      />
+    </Card>
   );
 };
 
 // Environment Configuration Component
-const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAWSProfileChange }) => {
+const EnvironmentConfig: React.FC<{ 
+  onAWSProfileChange?: () => void;
+  onShellLoadingChange?: (isLoading: boolean) => void;
+}> = ({ onAWSProfileChange, onShellLoadingChange }) => {
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
   const [awsProfile, setAwsProfile] = useState('');
   const [awsProfiles, setAwsProfiles] = useState<string[]>([]);
@@ -299,6 +603,8 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [autoImported, setAutoImported] = useState(false);
+  const [isAutoImporting, setIsAutoImporting] = useState(true);
   
   // Profile management state
   const [profiles, setProfiles] = useState<EnvironmentProfile[]>([]);
@@ -311,7 +617,6 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
   const loadEnvironmentVariables = async () => {
     try {
       if (window.go && window.go.main && window.go.main.App) {
-        // Load current environment variables
         const vars = await window.go.main.App.GetEnvironmentVariables();
         setEnvVars(vars);
         setAwsProfile(vars.AWS_PROFILE || '');
@@ -319,13 +624,11 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
         setPathVar(vars.PATH || '');
         setTfInfraPath(vars.TFINFRA_REPOSITORY_PATH || '');
         
-        // If TFINFRA_REPOSITORY_PATH is available and AWS profile is set, show expected KUBECONFIG path
         if (vars.TFINFRA_REPOSITORY_PATH && vars.AWS_PROFILE && !vars.KUBECONFIG) {
           const expectedKubeconfig = `${vars.TFINFRA_REPOSITORY_PATH}/setup/k8senv/${vars.AWS_PROFILE}/config`;
           setKubeconfig(expectedKubeconfig);
         }
         
-        // Load available AWS profiles
         try {
           const profiles = await window.go.main.App.GetAWSProfiles();
           setAwsProfiles(profiles);
@@ -333,7 +636,6 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
           console.warn('Failed to load AWS profiles:', error);
         }
         
-        // Auto-detect shell PATH if current PATH seems limited
         if (!vars.PATH || vars.PATH.split(':').length < 4) {
           try {
             const shellPath = await window.go.main.App.GetShellPATH();
@@ -374,10 +676,46 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
   };
 
   useEffect(() => {
-    loadEnvironmentVariables();
-    loadProfiles();
-    loadVersionInfo();
-  }, []);
+    const initializeEnvironment = async () => {
+      setIsAutoImporting(true);
+      if (onShellLoadingChange) {
+        onShellLoadingChange(true);
+      }
+      
+      // First, auto-import shell environment
+      try {
+        if (window.go && window.go.main && window.go.main.App) {
+          await window.go.main.App.ImportShellEnvironment();
+          console.log('Shell environment auto-imported at startup');
+          setAutoImported(true);
+          setSuccess('Shell environment was automatically imported at startup');
+        }
+      } catch (error) {
+        console.warn('Failed to auto-import shell environment:', error);
+        setError('Failed to auto-import shell environment. You may need to manually import it.');
+      } finally {
+        setIsAutoImporting(false);
+        if (onShellLoadingChange) {
+          onShellLoadingChange(false);
+        }
+      }
+      
+      // Then load everything else
+      await loadEnvironmentVariables();
+      await loadProfiles();
+      await loadVersionInfo();
+      
+      // After everything is loaded, trigger ArgoCD server update
+      // Use a small delay to ensure all environment variables are properly set
+      setTimeout(() => {
+        if (onAWSProfileChange) {
+          onAWSProfileChange();
+        }
+      }, 100);
+    };
+    
+    initializeEnvironment();
+  }, [onShellLoadingChange]);
 
   const handleSetAWSProfile = async () => {
     if (!awsProfile.trim()) {
@@ -393,74 +731,11 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
       await window.go.main.App.SetAWSProfile(awsProfile.trim());
       setSuccess('AWS Profile set successfully');
       await loadEnvironmentVariables();
-      // Notify parent component to update ArgoCD server
       if (onAWSProfileChange) {
         onAWSProfileChange();
       }
     } catch (error) {
       setError(`Failed to set AWS Profile: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetKubeconfig = async () => {
-    if (!kubeconfig.trim()) {
-      setError('Kubeconfig path cannot be empty');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      await window.go.main.App.SetKubeconfig(kubeconfig.trim());
-      setSuccess('Kubeconfig set successfully');
-      await loadEnvironmentVariables();
-    } catch (error) {
-      setError(`Failed to set Kubeconfig: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetPATH = async () => {
-    if (!pathVar.trim()) {
-      setError('PATH cannot be empty');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      await window.go.main.App.SetPATH(pathVar.trim());
-      setSuccess('PATH set successfully');
-      await loadEnvironmentVariables();
-    } catch (error) {
-      setError(`Failed to set PATH: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAutoDetectPATH = async () => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const shellPath = await window.go.main.App.GetShellPATH();
-      if (shellPath) {
-        setPathVar(shellPath);
-        setSuccess('Shell PATH detected successfully');
-      } else {
-        setError('Could not detect shell PATH');
-      }
-    } catch (error) {
-      setError(`Failed to detect shell PATH: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -474,34 +749,12 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
     try {
       await window.go.main.App.ImportShellEnvironment();
       setSuccess('Shell environment imported successfully');
-      await loadEnvironmentVariables(); // Refresh the UI
-      // Notify parent component to update ArgoCD server
+      await loadEnvironmentVariables();
       if (onAWSProfileChange) {
         onAWSProfileChange();
       }
     } catch (error) {
       setError(`Failed to import shell environment: ${error}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetTfInfraPath = async () => {
-    if (!tfInfraPath.trim()) {
-      setError('TFINFRA_REPOSITORY_PATH cannot be empty');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      await window.go.main.App.SetTfInfraRepositoryPath(tfInfraPath.trim());
-      setSuccess('TFINFRA_REPOSITORY_PATH set successfully');
-      await loadEnvironmentVariables();
-    } catch (error) {
-      setError(`Failed to set TFINFRA_REPOSITORY_PATH: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -543,7 +796,6 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
       await window.go.main.App.LoadEnvironmentProfile(selectedProfile);
       setSuccess(`Profile '${selectedProfile}' loaded successfully`);
       await loadEnvironmentVariables();
-      // Notify parent component to update ArgoCD server
       if (onAWSProfileChange) {
         onAWSProfileChange();
       }
@@ -557,10 +809,6 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
   const handleDeleteProfile = async () => {
     if (!selectedProfile) {
       setError('Please select a profile to delete');
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to delete profile '${selectedProfile}'?`)) {
       return;
     }
 
@@ -581,336 +829,269 @@ const EnvironmentConfig: React.FC<{ onAWSProfileChange?: () => void }> = ({ onAW
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <ComputerDesktopIcon className="w-8 h-8 text-green-500" />
-            <div>
-              <h1 className="text-2xl font-bold">Environment Configuration</h1>
-              <p className="text-slate-400">Set environment variables for AWS and Kubernetes</p>
-            </div>
-          </div>
-          
-          {/* Version Info */}
+    <div style={{ padding: '24px' }}>
+      <Row justify="space-between" style={{ marginBottom: '24px' }}>
+        <Col>
+          <Title level={2}>
+            <DesktopOutlined style={{ marginRight: '8px' }} />
+            Environment Configuration
+          </Title>
+          <Text type="secondary">Set environment variables for AWS and Kubernetes</Text>
+        </Col>
+        <Col>
           {versionInfo.version && (
-            <div className="text-right">
-              <div className="text-sm font-medium text-slate-300">
-                {versionInfo.name || 'Yak GUI'}
-              </div>
-              <div className="text-xs text-slate-500">
-                v{versionInfo.version}
-              </div>
+            <div style={{ textAlign: 'right' }}>
+              <Text strong>{versionInfo.name || 'Yak GUI'}</Text>
+              <br />
+              <Text type="secondary">v{versionInfo.version}</Text>
             </div>
           )}
-        </div>
+        </Col>
+      </Row>
 
-        {error && (
-          <div className="mb-4 p-4 bg-red-900 border border-red-700 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <XCircleIcon className="w-5 h-5 text-red-400" />
-              <span className="text-red-100">{error}</span>
-            </div>
-          </div>
-        )}
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: '16px' }}
+        />
+      )}
 
-        {success && (
-          <div className="mb-4 p-4 bg-green-900 border border-green-700 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <CheckCircleIcon className="w-5 h-5 text-green-400" />
-              <span className="text-green-100">{success}</span>
-            </div>
-          </div>
-        )}
+      {success && (
+        <Alert
+          message={success}
+          type="success"
+          showIcon
+          closable
+          onClose={() => setSuccess(null)}
+          style={{ marginBottom: '16px' }}
+        />
+      )}
 
-        <div className="grid gap-6">
-          {/* Import Shell Environment */}
-          <div className="bg-slate-800 rounded-lg p-6 border-2 border-green-600">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <ComputerDesktopIcon className="w-5 h-5 text-green-400" />
-              <span>Import Shell Environment</span>
-            </h2>
-            <div className="space-y-4">
-              <p className="text-sm text-slate-300">
+      <Space direction="vertical" style={{ width: '100%' }} size="large">
+        {/* Import Shell Environment */}
+        <Card 
+          title={
+            <Space>
+              <ImportOutlined />
+              Shell Environment
+              {isAutoImporting && <Spin size="small" />}
+            </Space>
+          }
+          style={{ 
+            border: isAutoImporting 
+              ? '2px solid #1890ff' 
+              : autoImported 
+                ? '2px solid #52c41a' 
+                : '2px solid #1890ff' 
+          }}
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {isAutoImporting ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <Spin size="large" />
+                <div style={{ marginTop: '16px' }}>
+                  <Text>Importing shell environment at startup...</Text>
+                </div>
+              </div>
+            ) : autoImported ? (
+              <Text>
+                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
+                Shell environment was automatically imported at startup. 
+                If you need to re-import (after changing your shell configuration), click the button below.
+              </Text>
+            ) : (
+              <Text>
+                <ExclamationCircleOutlined style={{ color: '#faad14', marginRight: '8px' }} />
                 If you launched this app from Finder and don't see your AWS profiles or environment variables, 
                 click this button to import your shell environment (PATH, AWS_PROFILE, TFINFRA_REPOSITORY_PATH, etc.).
-              </p>
-              <button
+              </Text>
+            )}
+            {!isAutoImporting && (
+              <Button
+                type={autoImported ? "default" : "primary"}
+                icon={<ImportOutlined />}
                 onClick={handleImportShellEnvironment}
-                disabled={loading}
-                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors flex items-center justify-center space-x-2"
+                loading={loading}
+                size="large"
+                style={{ width: '100%' }}
               >
-                <ComputerDesktopIcon className="w-5 h-5" />
-                <span>{loading ? 'Importing...' : 'Import Shell Environment'}</span>
-              </button>
-            </div>
-          </div>
+                {loading ? 'Importing...' : autoImported ? 'Re-import Shell Environment' : 'Import Shell Environment'}
+              </Button>
+            )}
+          </Space>
+        </Card>
 
-          {/* Profile Management */}
-          <div className="bg-slate-800 rounded-lg p-6 border-2 border-blue-600">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <DocumentTextIcon className="w-5 h-5 text-blue-400" />
-              <span>Environment Profiles</span>
-            </h2>
-            <div className="space-y-4">
-              <p className="text-sm text-slate-300">
-                Save and load different environment configurations for quick switching between setups.
-              </p>
-              
-              {/* Save Profile Section */}
-              <div className="bg-slate-700 rounded-lg p-4">
-                <h3 className="text-md font-medium mb-3 text-blue-300">Save Current Configuration</h3>
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={newProfileName}
-                    onChange={(e) => setNewProfileName(e.target.value)}
-                    placeholder="Profile name (e.g., 'staging', 'production')"
-                    className="flex-1 px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={loading || !newProfileName.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
+        {/* Profile Management */}
+        <Card 
+          title={
+            <Space>
+              <SaveOutlined />
+              Environment Profiles
+            </Space>
+          }
+          style={{ border: '2px solid #1890ff' }}
+        >
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Text>Save and load different environment configurations for quick switching between setups.</Text>
+            
+            {/* Save Profile */}
+            <Card type="inner" title="Save Current Configuration" size="small">
+              <Space style={{ width: '100%' }}>
+                <Input
+                  placeholder="Profile name (e.g., 'staging', 'production')"
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  type="primary"
+                  onClick={handleSaveProfile}
+                  disabled={loading || !newProfileName.trim()}
+                  loading={loading}
+                >
+                  Save Profile
+                </Button>
+              </Space>
+            </Card>
+
+            {/* Load Profile */}
+            {profiles.length > 0 && (
+              <Card type="inner" title="Load Saved Profile" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Select
+                    placeholder="Select a profile..."
+                    value={selectedProfile}
+                    onChange={setSelectedProfile}
+                    style={{ width: '100%' }}
                   >
-                    {loading ? 'Saving...' : 'Save Profile'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Load/Delete Profile Section */}
-              {profiles.length > 0 && (
-                <div className="bg-slate-700 rounded-lg p-4">
-                  <h3 className="text-md font-medium mb-3 text-blue-300">Load Saved Profile</h3>
-                  <div className="space-y-3">
-                    <select
-                      value={selectedProfile}
-                      onChange={(e) => setSelectedProfile(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select a profile...</option>
-                      {profiles.map((profile) => (
-                        <option key={profile.name} value={profile.name}>
-                          {profile.name} (AWS: {profile.aws_profile || 'none'})
-                        </option>
-                      ))}
-                    </select>
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={handleLoadProfile}
-                        disabled={loading || !selectedProfile}
-                        className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                      >
-                        {loading ? 'Loading...' : 'Load Profile'}
-                      </button>
-                      <button
-                        onClick={handleDeleteProfile}
-                        disabled={loading || !selectedProfile}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                      >
-                        {loading ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {profiles.length === 0 && (
-                <div className="text-center py-4 text-slate-400">
-                  No saved profiles yet. Save your current configuration above to get started.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Terraform Infrastructure Path Configuration */}
-          <div className="bg-slate-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <FolderIcon className="w-5 h-5 text-orange-400" />
-              <span>Terraform Infrastructure Path</span>
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Current TFINFRA_REPOSITORY_PATH: <span className="text-orange-400">{envVars.TFINFRA_REPOSITORY_PATH || 'Not set'}</span>
-                </label>
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={tfInfraPath}
-                    onChange={(e) => setTfInfraPath(e.target.value)}
-                    placeholder="/Users/sergiosantiago/projects/doctolib/terraform-infra"
-                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                  <button
-                    onClick={handleSetTfInfraPath}
-                    disabled={loading}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                  >
-                    {loading ? 'Setting...' : 'Set Path'}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 mt-2">
-                  💡 Required for auto-generating KUBECONFIG paths from AWS profiles
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* AWS Profile Configuration */}
-          <div className="bg-slate-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <ServerIcon className="w-5 h-5 text-blue-400" />
-              <span>AWS Profile</span>
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Current AWS Profile: <span className="text-blue-400">{envVars.AWS_PROFILE || 'Not set'}</span>
-                </label>
-                <div className="flex space-x-3">
-                  <select
-                    value={awsProfile}
-                    onChange={(e) => setAwsProfile(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select AWS Profile...</option>
-                    {awsProfiles.map((profile) => (
-                      <option key={profile} value={profile}>
-                        {profile}
-                      </option>
+                    {profiles.map((profile) => (
+                      <Option key={profile.name} value={profile.name}>
+                        {profile.name} (AWS: {profile.aws_profile || 'none'})
+                      </Option>
                     ))}
-                  </select>
-                  <button
-                    onClick={handleSetAWSProfile}
-                    disabled={loading || !awsProfile}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                  >
-                    {loading ? 'Setting...' : 'Set Profile'}
-                  </button>
-                </div>
-                <div className="mt-2 space-y-1">
-                  {awsProfiles.length === 0 && (
-                    <p className="text-xs text-slate-400">
-                      💡 No AWS profiles found in ~/.aws/config
-                    </p>
-                  )}
-                  {envVars.TFINFRA_REPOSITORY_PATH && (
-                    <p className="text-xs text-slate-400">
-                      ✨ Auto-configures KUBECONFIG and kubectl context when profile is selected
-                    </p>
-                  )}
-                  {!envVars.TFINFRA_REPOSITORY_PATH && (
-                    <p className="text-xs text-yellow-400">
-                      ⚠️ TFINFRA_REPOSITORY_PATH not set - KUBECONFIG won't be auto-configured
-                    </p>
-                  )}
-                  {awsProfile && (
-                    <p className="text-xs text-green-400">
-                      📡 ArgoCD Server: argocd-{awsProfile}.doctolib.net
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+                  </Select>
+                  <Space style={{ width: '100%' }}>
+                    <Button
+                      type="primary"
+                      onClick={handleLoadProfile}
+                      disabled={loading || !selectedProfile}
+                      loading={loading}
+                      style={{ flex: 1 }}
+                    >
+                      Load Profile
+                    </Button>
+                    <Popconfirm
+                      title="Are you sure you want to delete this profile?"
+                      onConfirm={handleDeleteProfile}
+                      disabled={loading || !selectedProfile}
+                    >
+                      <Button
+                        danger
+                        disabled={loading || !selectedProfile}
+                        loading={loading}
+                      >
+                        Delete
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                </Space>
+              </Card>
+            )}
 
-          {/* Kubeconfig Configuration */}
-          <div className="bg-slate-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <FolderIcon className="w-5 h-5 text-purple-400" />
-              <span>Kubernetes Configuration</span>
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Current KUBECONFIG: <span className="text-purple-400 text-xs font-mono break-all">{envVars.KUBECONFIG || 'Not set'}</span>
-                  {envVars.TFINFRA_REPOSITORY_PATH && envVars.AWS_PROFILE && (
-                    <span className="ml-2 text-xs text-green-400">(Auto-generated from AWS profile)</span>
-                  )}
-                </label>
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={kubeconfig}
-                    onChange={(e) => setKubeconfig(e.target.value)}
-                    placeholder="/path/to/kubeconfig"
-                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  <button
-                    onClick={handleSetKubeconfig}
-                    disabled={loading}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                  >
-                    {loading ? 'Setting...' : 'Set Config'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            {profiles.length === 0 && (
+              <Card type="inner">
+                <Text type="secondary">No saved profiles yet. Save your current configuration above to get started.</Text>
+              </Card>
+            )}
+          </Space>
+        </Card>
 
-          {/* PATH Configuration */}
-          <div className="bg-slate-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <CogIcon className="w-5 h-5 text-yellow-400" />
-              <span>System PATH</span>
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Current PATH: <span className="text-yellow-400 text-xs font-mono break-all">{envVars.PATH ? `${envVars.PATH.split(':').length} directories` : 'Not set'}</span>
-                </label>
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={pathVar}
-                    onChange={(e) => setPathVar(e.target.value)}
-                    placeholder="/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin"
-                    className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  />
-                  <button
-                    onClick={handleAutoDetectPATH}
-                    disabled={loading}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                  >
-                    {loading ? 'Detecting...' : 'Auto-detect'}
-                  </button>
-                  <button
-                    onClick={handleSetPATH}
-                    disabled={loading}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 text-white rounded-md font-medium transition-colors"
-                  >
-                    {loading ? 'Setting...' : 'Set PATH'}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-400 mt-2">
-                  💡 Include paths like /usr/local/bin and /opt/homebrew/bin where aws-iam-authenticator is installed
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* AWS Profile Configuration */}
+        <Card 
+          title={
+            <Space>
+              <CloudOutlined />
+              AWS Profile Configuration
+            </Space>
+          }
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text>
+              <Text strong>Current AWS Profile:</Text> {envVars.AWS_PROFILE || 'Not set'}
+            </Text>
+            <Space style={{ width: '100%' }}>
+              <Select
+                placeholder="Select AWS Profile..."
+                value={awsProfile}
+                onChange={setAwsProfile}
+                style={{ flex: 1 }}
+              >
+                {awsProfiles.map((profile) => (
+                  <Option key={profile} value={profile}>
+                    {profile}
+                  </Option>
+                ))}
+              </Select>
+              <Button
+                type="primary"
+                onClick={handleSetAWSProfile}
+                disabled={loading || !awsProfile}
+                loading={loading}
+              >
+                Set Profile
+              </Button>
+            </Space>
+            <Space direction="vertical" size="small">
+              {awsProfiles.length === 0 && (
+                <Text type="secondary">💡 No AWS profiles found in ~/.aws/config</Text>
+              )}
+              {envVars.TFINFRA_REPOSITORY_PATH && (
+                <Text type="success">✨ Auto-configures KUBECONFIG and kubectl context when profile is selected</Text>
+              )}
+              {!envVars.TFINFRA_REPOSITORY_PATH && (
+                <Text type="warning">⚠️ TFINFRA_REPOSITORY_PATH not set - KUBECONFIG won't be auto-configured</Text>
+              )}
+              {awsProfile && (
+                <Text type="success">📡 ArgoCD Server: argocd-{awsProfile}.doctolib.net</Text>
+              )}
+            </Space>
+          </Space>
+        </Card>
 
-          {/* Environment Variables Display */}
-          <div className="bg-slate-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-              <CogIcon className="w-5 h-5 text-green-400" />
-              <span>Current Environment</span>
-            </h2>
-            <div className="space-y-2">
-              {Object.entries(envVars).map(([key, value]) => (
-                <div key={key} className="flex">
-                  <span className="w-32 text-slate-400 font-mono text-sm">{key}:</span>
-                  <span className="text-white font-mono text-sm break-all">{value || 'Not set'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* Environment Variables Display */}
+        <Card 
+          title={
+            <Space>
+              <SettingOutlined />
+              Current Environment
+            </Space>
+          }
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {Object.entries(envVars).map(([key, value]) => (
+              <Row key={key} justify="space-between" style={{ marginBottom: '8px' }}>
+                <Col flex="0 0 auto" style={{ minWidth: '220px', paddingRight: '16px' }}>
+                  <Text strong>{key}:</Text>
+                </Col>
+                <Col flex="auto">
+                  <Text code copyable style={{ wordBreak: 'break-all' }}>
+                    {value || 'Not set'}
+                  </Text>
+                </Col>
+              </Row>
+            ))}
+          </Space>
+        </Card>
+      </Space>
     </div>
   );
 };
 
+// Main App Component
 const App: React.FC = () => {
   const [apps, setApps] = useState<ArgoApp[]>([]);
   const [loading, setLoading] = useState(false);
@@ -925,7 +1106,9 @@ const App: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [awsProfile, setAwsProfile] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'argocd' | 'rollouts' | 'secrets' | 'environment'>('environment');
+  const [activeTab, setActiveTab] = useState<'environment' | 'argocd' | 'rollouts' | 'secrets'>('environment');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isShellLoading, setIsShellLoading] = useState(true);
 
   const loadAWSProfile = async () => {
     try {
@@ -934,7 +1117,6 @@ const App: React.FC = () => {
         setAwsProfile(profile);
         
         if (profile) {
-          // Auto-detect ArgoCD server from AWS profile
           try {
             const server = await window.go.main.App.GetArgoCDServerFromProfile();
             setConfig(prev => ({ ...prev, server }));
@@ -945,7 +1127,6 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load AWS profile:', error);
-      // Don't set error state for this, it's optional
     }
   };
 
@@ -956,10 +1137,36 @@ const App: React.FC = () => {
         if (profile) {
           const server = await window.go.main.App.GetArgoCDServerFromProfile();
           setConfig(prev => ({ ...prev, server }));
+          
+          // Auto-load apps when server configuration changes
+          if (server) {
+            try {
+              const apps = await window.go.main.App.GetArgoApps({ ...config, server });
+              setApps(apps);
+            } catch (error) {
+              console.warn('Failed to auto-load apps after server update:', error);
+              setError(`Failed to load applications from ${server}`);
+            }
+          }
         }
       }
     } catch (error) {
       console.warn('Failed to update ArgoCD server:', error);
+    }
+  };
+
+  const loadApps = async () => {
+    if (!config.server) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const apps = await window.go.main.App.GetArgoApps(config);
+      setApps(apps);
+    } catch (error) {
+      setError(`Failed to load applications: ${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -968,327 +1175,232 @@ const App: React.FC = () => {
     setError(null);
     try {
       await window.go.main.App.LoginToArgoCD(config);
-      // After successful login, try to load apps again
-      setTimeout(() => loadApps(), 1000); // Small delay to ensure login is complete
+      await loadApps();
     } catch (error) {
-      setError(`Login failed: ${error instanceof Error ? error.message : String(error)}`);
+      setError(`Login failed: ${error}`);
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const loadApps = async () => {
-    if (!config.server) {
-      setError('ArgoCD server is required');
-      return;
-    }
-
-    // Check if Wails bindings are available
-    if (!window.go || !window.go.main || !window.go.main.App) {
-      setError('Wails bindings not available. Please wait for the app to fully load.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const argoApps = await window.go.main.App.GetArgoApps(config);
-      
-      if (Array.isArray(argoApps)) {
-        setApps(argoApps);
-      } else {
-        setError(`Expected array, got ${typeof argoApps}`);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Failed to load apps:', error);
-      
-      // Check if this is an authentication error
-      if (errorMessage.includes('authentication required') || errorMessage.includes('SAML redirect')) {
-        setError(`${errorMessage}`);
-      } else {
-        setError(`Failed to load applications: ${errorMessage}`);
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = async () => {
+    await loadApps();
   };
 
-  const handleRefresh = () => {
-    loadApps();
-  };
-
-  // Load AWS profile on startup
   useEffect(() => {
-    const initializeAWS = () => {
-      if (window.go && window.go.main && window.go.main.App) {
-        loadAWSProfile();
-      } else {
-        // Wait for Wails to be ready
-        setTimeout(initializeAWS, 100);
-      }
-    };
-    initializeAWS();
+    loadAWSProfile();
   }, []);
 
-  // Auto-refresh every 30 seconds when enabled
   useEffect(() => {
-    if (autoRefresh && config.server) {
+    if (config.server && autoRefresh) {
       const interval = setInterval(loadApps, 30000);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh, config.server]);
+  }, [config.server, autoRefresh]);
 
-  // Wait for Wails to be ready, then load apps when config changes
-  useEffect(() => {
-    const checkWailsAndLoad = () => {
-      if (window.go && window.go.main && window.go.main.App && config.server && config.project) {
-        loadApps();
-      } else if (config.server && config.project) {
-        // If config is set but Wails isn't ready, wait a bit and try again
-        setTimeout(checkWailsAndLoad, 100);
-      }
-    };
-    
-    checkWailsAndLoad();
-  }, [config.server, config.project]);
-
-  const filteredApps = apps;
-  
-  const healthStats = apps.reduce((acc, app) => {
-    if (app && app.Health) {
-      const key = app.Health.toLowerCase();
-      acc[key] = (acc[key] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const syncStats = apps.reduce((acc, app) => {
-    if (app && app.Sync) {
-      const key = app.Sync.toLowerCase();
-      acc[key] = (acc[key] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const ArgocdInterface = () => (
-    <>
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <ServerIcon className="w-8 h-8 text-blue-500" />
-            <div>
-              <h1 className="text-xl font-bold">Yak ArgoCD GUI</h1>
-              <p className="text-sm text-slate-400">
-                {config.server ? `Connected to ${config.server}` : 'Not connected'}
-                {awsProfile && <span className="ml-2 px-2 py-1 bg-blue-600 rounded text-xs">AWS: {awsProfile}</span>}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-2 text-sm">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500"
-              />
-              <span>Auto-refresh</span>
-            </label>
-
-            <button
-              onClick={loadAWSProfile}
-              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              title="Auto-detect ArgoCD server from AWS_PROFILE"
-            >
-              <span>Auto-detect</span>
-            </button>
-
-            <button
-              onClick={() => setShowConfig(!showConfig)}
-              className="flex items-center space-x-2 bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <CogIcon className="w-4 h-4" />
-              <span>Config</span>
-            </button>
-
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <ArrowPathIcon className="w-4 h-4" />
-              )}
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
-
-        {showConfig && (
-          <div className="mt-4 p-4 bg-slate-700 rounded-lg">
-            <h3 className="text-lg font-medium mb-4">ArgoCD Configuration</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">ArgoCD Server</label>
-                <input
-                  type="text"
-                  value={config.server}
-                  onChange={(e) => setConfig({ ...config, server: e.target.value })}
-                  placeholder="argocd.example.com"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Project</label>
-                <input
-                  type="text"
-                  value={config.project}
-                  onChange={(e) => setConfig({ ...config, project: e.target.value })}
-                  placeholder="main"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-900 border border-red-700 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <XCircleIcon className="w-5 h-5 text-red-400" />
-              <span className="text-red-100">{error}</span>
-            </div>
-            {(error.includes('authentication required') || error.includes('SAML redirect')) && (
-              <button
-                onClick={handleLogin}
-                disabled={isLoggingIn}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                {isLoggingIn ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : null}
-                <span>{isLoggingIn ? 'Logging in...' : 'Login to ArgoCD'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <main className="p-6">
-
-        {apps.length > 0 && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Total Applications</h3>
-              <p className="text-2xl font-bold">{apps.length}</p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Healthy</h3>
-              <p className="text-2xl font-bold text-green-500">{healthStats.healthy || 0}</p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Synced</h3>
-              <p className="text-2xl font-bold text-green-500">{syncStats.synced || 0}</p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Out of Sync</h3>
-              <p className="text-2xl font-bold text-red-500">{syncStats.outofsync || 0}</p>
-            </div>
-          </div>
-        )}
-
-        {loading && apps.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-400">Loading applications...</p>
-            </div>
-          </div>
-        ) : filteredApps.length === 0 ? (
-          <div className="text-center py-12">
-            <ServerIcon className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400">
-              {config.server ? 'No applications found' : 'Configure ArgoCD server to get started'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredApps.map((app, index) => (
-              <AppCard
-                key={app?.AppName || `app-${index}`}
-                app={app}
-                config={config}
-                onAction={handleRefresh}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-    </>
+  const filteredApps = apps.filter(app => 
+    app?.AppName?.toLowerCase().includes('')
   );
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      {/* Tab Navigation */}
-      <div className="bg-slate-800 border-b border-slate-700">
-        <div className="px-6">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('environment')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'environment'
-                  ? 'border-green-500 text-green-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
+  const ArgocdInterface = () => (
+    <div style={{ padding: '24px' }}>
+      <Row justify="space-between" style={{ marginBottom: '24px' }}>
+        <Col>
+          <Title level={2}>
+            <ApiOutlined style={{ marginRight: '8px' }} />
+            ArgoCD Applications
+          </Title>
+          <Text type="secondary">Manage your ArgoCD applications</Text>
+        </Col>
+        <Col>
+          <Space>
+            <Switch
+              checked={autoRefresh}
+              onChange={setAutoRefresh}
+              checkedChildren="Auto"
+              unCheckedChildren="Manual"
+            />
+            <Button 
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              loading={loading}
             >
-              Environment
-            </button>
-            <button
-              onClick={() => setActiveTab('argocd')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'argocd'
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
+              Refresh
+            </Button>
+            <Button 
+              icon={<SettingOutlined />}
+              onClick={() => setShowConfig(!showConfig)}
             >
-              ArgoCD Applications
-            </button>
-            <button
-              onClick={() => setActiveTab('rollouts')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'rollouts'
-                  ? 'border-purple-500 text-purple-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Argo Rollouts
-            </button>
-            <button
-              onClick={() => setActiveTab('secrets')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'secrets'
-                  ? 'border-yellow-500 text-yellow-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-300'
-              }`}
-            >
-              Secrets
-            </button>
-          </div>
-        </div>
-      </div>
+              Config
+            </Button>
+          </Space>
+        </Col>
+      </Row>
 
-      {/* Tab Content */}
-      {activeTab === 'argocd' ? <ArgocdInterface /> : 
-       activeTab === 'rollouts' ? <Rollouts /> : 
-       activeTab === 'secrets' ? <Secrets /> :
-       <EnvironmentConfig onAWSProfileChange={updateArgoCDServer} />}
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: '16px' }}
+        />
+      )}
+
+      {showConfig && (
+        <Card style={{ marginBottom: '16px' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text strong>ArgoCD Configuration</Text>
+            <Space style={{ width: '100%' }}>
+              <Input
+                placeholder="ArgoCD Server"
+                value={config.server}
+                onChange={(e) => setConfig(prev => ({ ...prev, server: e.target.value }))}
+                style={{ flex: 1 }}
+                prefix={<CloudServerOutlined />}
+              />
+              <Input
+                placeholder="Project"
+                value={config.project}
+                onChange={(e) => setConfig(prev => ({ ...prev, project: e.target.value }))}
+                style={{ width: '200px' }}
+              />
+            </Space>
+            <Space>
+              <Button
+                type="primary"
+                onClick={handleLogin}
+                loading={isLoggingIn}
+                disabled={!config.server}
+              >
+                {isLoggingIn ? 'Logging in...' : 'Login to ArgoCD'}
+              </Button>
+              <Text type="secondary">
+                {awsProfile ? `AWS Profile: ${awsProfile}` : 'No AWS profile set'}
+              </Text>
+            </Space>
+          </Space>
+        </Card>
+      )}
+
+      <div style={{ minHeight: '400px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '16px' }}>Loading applications...</div>
+          </div>
+        ) : filteredApps.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <CloudServerOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+            <div style={{ marginTop: '16px', color: '#999' }}>
+              {config.server ? 'No applications found' : 'Configure ArgoCD server to get started'}
+            </div>
+          </div>
+        ) : (
+          <Row gutter={[16, 16]}>
+            {filteredApps.map((app, index) => (
+              <Col xs={24} sm={12} md={8} lg={6} key={app?.AppName || `app-${index}`}>
+                <AppCard
+                  app={app}
+                  config={config}
+                  onAction={handleRefresh}
+                />
+              </Col>
+            ))}
+          </Row>
+        )}
+      </div>
     </div>
+  );
+
+  const tabItems = [
+    {
+      key: 'environment',
+      label: (
+        <span>
+          <DesktopOutlined />
+          Environment
+        </span>
+      ),
+      children: <EnvironmentConfig onAWSProfileChange={updateArgoCDServer} onShellLoadingChange={setIsShellLoading} />,
+    },
+    {
+      key: 'argocd',
+      label: (
+        <span>
+          <CloudOutlined />
+          ArgoCD Applications
+          {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
+        </span>
+      ),
+      children: <ArgocdInterface />,
+      disabled: isShellLoading, // Disable while shell environment is loading
+    },
+    {
+      key: 'rollouts',
+      label: (
+        <span>
+          <DatabaseOutlined />
+          Argo Rollouts
+          {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
+        </span>
+      ),
+      children: <Rollouts />,
+      disabled: isShellLoading, // Disable while shell environment is loading
+    },
+    {
+      key: 'secrets',
+      label: (
+        <span>
+          <SafetyOutlined />
+          Secrets
+        </span>
+      ),
+      children: <Secrets />,
+    },
+    {
+      key: 'certificates',
+      label: (
+        <span>
+          <FileProtectOutlined />
+          Certificates
+        </span>
+      ),
+      children: <Certificates />,
+    },
+  ];
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
+      <Layout style={{ minHeight: '100vh' }}>
+        <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Title level={3} style={{ color: 'white', margin: 0 }}>
+            Yak GUI
+          </Title>
+          <Space>
+            <Switch
+              checked={isDarkMode}
+              onChange={setIsDarkMode}
+              checkedChildren={<MoonOutlined />}
+              unCheckedChildren={<SunOutlined />}
+            />
+          </Space>
+        </Header>
+        <Content>
+          <Tabs
+            activeKey={activeTab}
+            onChange={(key) => setActiveTab(key as any)}
+            items={tabItems}
+            style={{ height: '100%' }}
+          />
+        </Content>
+      </Layout>
+    </ConfigProvider>
   );
 };
 

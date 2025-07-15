@@ -1,17 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowPathIcon, 
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  KeyIcon,
-  LockClosedIcon,
-  FolderIcon,
-  ExclamationTriangleIcon,
-  XCircleIcon
-} from '@heroicons/react/24/outline';
+  Card, 
+  Button, 
+  Space, 
+  Typography, 
+  Input, 
+  Alert, 
+  Spin, 
+  Row, 
+  Col,
+  Select,
+  Modal,
+  Popconfirm,
+  Form
+} from 'antd';
+import {
+  SafetyOutlined,
+  ReloadOutlined,
+  KeyOutlined,
+  EyeOutlined,
+  FolderOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 // Types matching the Go backend
 interface SecretListItem {
@@ -44,13 +59,11 @@ interface SecretMetadata {
 interface SecretConfig {
   platform: string;
   environment: string;
-  team: string;
 }
 
 interface JWTClientConfig {
   platform: string;
   environment: string;
-  team: string;
   path: string;
   owner: string;
   localName: string;
@@ -61,7 +74,6 @@ interface JWTClientConfig {
 interface JWTServerConfig {
   platform: string;
   environment: string;
-  team: string;
   path: string;
   owner: string;
   localName: string;
@@ -70,168 +82,27 @@ interface JWTServerConfig {
   clientSecret: string;
 }
 
-
-const SecretCard: React.FC<{ 
-  secret: SecretListItem; 
-  config: SecretConfig;
-  onAction: () => void;
-  onView: (secret: SecretListItem) => void;
-  onEdit: (secret: SecretListItem) => void;
-  onDelete: (secret: SecretListItem) => void;
-  onNavigate: (path: string) => void;
-}> = ({ secret, onView, onEdit, onDelete, onNavigate }) => {
-  const getSourceColor = (source: string) => {
-    switch (source.toLowerCase()) {
-      case 'manual': return 'bg-blue-600';
-      case 'generated': return 'bg-green-600';
-      case 'imported': return 'bg-purple-600';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const isFolder = secret?.path?.endsWith('/');
-  const displayName = isFolder ? secret.path.slice(0, -1) : secret.path;
-
-  const handleCardClick = () => {
-    if (isFolder) {
-      onNavigate(secret.path);
-    }
-  };
-
-  return (
-    <div 
-      className={`bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition-colors ${isFolder ? 'cursor-pointer' : ''}`}
-      onClick={isFolder ? handleCardClick : undefined}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {isFolder ? (
-            <FolderIcon className="w-5 h-5 text-blue-500" />
-          ) : (
-            <KeyIcon className="w-5 h-5 text-yellow-500" />
-          )}
-          <div>
-            <h3 className="text-lg font-semibold text-white font-mono">{displayName}</h3>
-            <p className="text-sm text-slate-400">{isFolder ? 'Folder' : `v${secret?.version || 0}`}</p>
-          </div>
-        </div>
-        {!isFolder && (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getSourceColor(secret?.source || '')}`}>
-            {secret?.source || 'Unknown'}
-          </span>
-        )}
-      </div>
-
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Owner:</span>
-          <span className="text-sm text-slate-300">
-            {secret?.owner && secret.owner !== 'Unknown' ? secret.owner : 'Click View for details'}
-          </span>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Usage:</span>
-          <span className="text-sm text-slate-300 truncate max-w-48">
-            {secret?.usage && secret.usage !== 'Unknown' ? secret.usage : 'Click View for details'}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">Type:</span>
-          <span className="text-sm text-slate-300">
-            {secret?.path?.endsWith('/') ? 'Folder' : 'Secret'}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {isFolder ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onNavigate(secret.path);
-            }}
-            className="col-span-3 flex items-center justify-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-          >
-            <FolderIcon className="w-4 h-4" />
-            <span>Open Folder</span>
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onView(secret);
-              }}
-              className="flex items-center justify-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <EyeIcon className="w-4 h-4" />
-              <span>View</span>
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(secret);
-              }}
-              className="flex items-center justify-center space-x-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <PencilIcon className="w-4 h-4" />
-              <span>Edit</span>
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(secret);
-              }}
-              className="flex items-center justify-center space-x-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <TrashIcon className="w-4 h-4" />
-              <span>Delete</span>
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const Secrets: React.FC = () => {
   const [secrets, setSecrets] = useState<SecretListItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [config, setConfig] = useState<SecretConfig>({
     platform: 'dev',
-    environment: '',
-    team: ''
+    environment: ''
   });
-  const [currentPath, setCurrentPath] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [showConfig, setShowConfig] = useState(false);
   const [selectedSecret, setSelectedSecret] = useState<SecretListItem | null>(null);
   const [secretData, setSecretData] = useState<SecretData | null>(null);
   const [showSecretDialog, setShowSecretDialog] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingSecretData, setEditingSecretData] = useState<Record<string, string>>({});
+  const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
   const [showJWTClientDialog, setShowJWTClientDialog] = useState(false);
   const [showJWTServerDialog, setShowJWTServerDialog] = useState(false);
-  const [showValues, setShowValues] = useState(false);
-  const [newSecretForm, setNewSecretForm] = useState({
-    path: '',
-    owner: '',
-    usage: '',
-    source: 'manual',
-    data: {} as Record<string, string>
-  });
-  const [editSecretForm, setEditSecretForm] = useState({
-    data: {} as Record<string, string>
-  });
   const [jwtClientForm, setJwtClientForm] = useState<JWTClientConfig>({
-    platform: 'dev',
+    platform: '',
     environment: '',
-    team: '',
     path: '',
     owner: '',
     localName: '',
@@ -239,9 +110,8 @@ const Secrets: React.FC = () => {
     secret: ''
   });
   const [jwtServerForm, setJwtServerForm] = useState<JWTServerConfig>({
-    platform: 'dev',
+    platform: '',
     environment: '',
-    team: '',
     path: '',
     owner: '',
     localName: '',
@@ -249,32 +119,13 @@ const Secrets: React.FC = () => {
     clientName: '',
     clientSecret: ''
   });
-  const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
-
-  const handleNavigate = (path: string) => {
-    setCurrentPath(path);
-    // Build breadcrumbs from the current path
-    const pathParts = path.split('/').filter(part => part !== '');
-    setBreadcrumbs(pathParts);
-  };
-
-  const handleBreadcrumbClick = (index: number) => {
-    const newPath = breadcrumbs.slice(0, index + 1).join('/') + '/';
-    setCurrentPath(newPath);
-    setBreadcrumbs(breadcrumbs.slice(0, index + 1));
-  };
-
-  const handleGoBack = () => {
-    if (breadcrumbs.length > 0) {
-      const newBreadcrumbs = breadcrumbs.slice(0, -1);
-      const newPath = newBreadcrumbs.length > 0 ? newBreadcrumbs.join('/') + '/' : '';
-      setCurrentPath(newPath);
-      setBreadcrumbs(newBreadcrumbs);
-    } else {
-      setCurrentPath('');
-      setBreadcrumbs([]);
-    }
-  };
+  
+  // Dynamic configuration state
+  const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
+  const [availableEnvironments, setAvailableEnvironments] = useState<string[]>([]);
+  const [availablePaths, setAvailablePaths] = useState<string[]>([]);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [pathsLoading, setPathsLoading] = useState(false);
 
   const loadSecrets = async () => {
     if (!config.platform) {
@@ -311,46 +162,187 @@ const Secrets: React.FC = () => {
     }
   };
 
+  // Load dynamic configuration
+  const loadConfiguration = async () => {
+    setConfigLoading(true);
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const platforms = await window.go.main.App.GetSecretConfigPlatforms();
+        setAvailablePlatforms(platforms);
+        
+        // Set default platform if available
+        if (platforms.length > 0 && !config.platform) {
+          setConfig(prev => ({ ...prev, platform: platforms[0] }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load secret configuration:', error);
+      setError('Failed to load secret configuration');
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  // Load environments when platform changes
+  const loadEnvironments = async (platform: string) => {
+    if (!platform) {
+      setAvailableEnvironments([]);
+      return;
+    }
+    
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const environments = await window.go.main.App.GetSecretConfigEnvironments(platform);
+        setAvailableEnvironments(environments);
+      }
+    } catch (error) {
+      console.error('Failed to load environments:', error);
+      setAvailableEnvironments([]);
+    }
+  };
+
+  // Load paths when platform or environment changes
+  const loadPaths = async (platform: string, environment: string) => {
+    if (!platform) {
+      setAvailablePaths([]);
+      return;
+    }
+    
+    setPathsLoading(true);
+    try {
+      if (window.go && window.go.main && window.go.main.App) {
+        const paths = await window.go.main.App.GetSecretConfigPaths(platform, environment || '');
+        setAvailablePaths(paths);
+      }
+    } catch (error) {
+      console.error('Failed to load paths:', error);
+      setAvailablePaths(['']); // Fallback to empty path
+    } finally {
+      setPathsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConfiguration();
+  }, []);
+
+  useEffect(() => {
+    loadEnvironments(config.platform);
+    loadPaths(config.platform, config.environment);
+  }, [config.platform]);
+
+  useEffect(() => {
+    loadPaths(config.platform, config.environment);
+  }, [config.environment]);
+
+  // Reload paths when navigating to different directories
+  useEffect(() => {
+    if (config.platform) {
+      loadPaths(config.platform, config.environment);
+    }
+  }, [currentPath]);
+
+  useEffect(() => {
+    loadSecrets();
+  }, [config, currentPath]);
+
+  const handleNavigate = (path: string) => {
+    // Append the new path to current path to build full path
+    const newPath = currentPath ? `${currentPath.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}` : path;
+    setCurrentPath(newPath);
+    // Build breadcrumbs from the full path
+    const pathParts = newPath.split('/').filter(part => part !== '');
+    setBreadcrumbs(pathParts);
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
+    const newPath = newBreadcrumbs.join('/') + '/';
+    setCurrentPath(newPath);
+    setBreadcrumbs(newBreadcrumbs);
+  };
+
+  const handleGoBack = () => {
+    if (breadcrumbs.length > 0) {
+      const newBreadcrumbs = breadcrumbs.slice(0, -1);
+      const newPath = newBreadcrumbs.length > 0 ? newBreadcrumbs.join('/') + '/' : '';
+      setCurrentPath(newPath);
+      setBreadcrumbs(newBreadcrumbs);
+    } else {
+      setCurrentPath('');
+      setBreadcrumbs([]);
+    }
+  };
+
   const handleViewSecret = async (secret: SecretListItem) => {
     setSelectedSecret(secret);
     try {
       // Construct the full path by combining current path with secret path
-      const fullPath = currentPath ? `${currentPath}${secret.path}` : secret.path;
-      console.log('Getting secret with full path:', fullPath);
+      // Remove any trailing slash from currentPath and ensure proper path construction
+      let fullPath = secret.path;
+      if (currentPath && currentPath.trim() !== '') {
+        const cleanCurrentPath = currentPath.replace(/\/+$/, ''); // Remove trailing slashes
+        const cleanSecretPath = secret.path.replace(/^\/+/, ''); // Remove leading slashes
+        fullPath = `${cleanCurrentPath}/${cleanSecretPath}`;
+      }
+      
+      console.log('Getting secret with currentPath:', currentPath);
+      console.log('Getting secret with secret.path:', secret.path);
+      console.log('Getting secret with constructed fullPath:', fullPath);
+      
       const data = await window.go.main.App.GetSecretData(config, fullPath, secret.version);
+      console.log('Secret data received:', data);
+      
+      // Validate the received data
+      if (!data) {
+        throw new Error('No data returned from secret get operation');
+      }
+      
+      // Ensure data.data exists and is an object
+      if (!data.data || typeof data.data !== 'object') {
+        console.warn('Secret data.data is missing or invalid:', data);
+        data.data = {}; // Initialize as empty object to prevent crashes
+      }
+      
+      // Ensure metadata exists
+      if (!data.metadata) {
+        console.warn('Secret metadata is missing:', data);
+        data.metadata = {
+          owner: 'Unknown',
+          usage: 'Unknown',
+          source: 'Unknown',
+          version: secret.version || 1,
+          destroyed: false,
+          createdAt: '',
+          updatedAt: ''
+        };
+      }
+      
       setSecretData(data);
       setShowSecretDialog(true);
     } catch (error) {
+      console.error('Error loading secret data:', error);
       setError(`Failed to load secret data: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  const handleCreateSecret = async () => {
-    try {
-      await window.go.main.App.CreateSecret(
-        config,
-        newSecretForm.path,
-        newSecretForm.owner,
-        newSecretForm.usage,
-        newSecretForm.source,
-        newSecretForm.data
-      );
-      setShowCreateDialog(false);
-      setNewSecretForm({ path: '', owner: '', usage: '', source: 'manual', data: {} });
-      loadSecrets();
-    } catch (error) {
-      setError(`Failed to create secret: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
   const handleEditSecret = async (secret: SecretListItem) => {
-    setSelectedSecret(secret);
     try {
-      // Load current secret data for editing
-      const fullPath = currentPath ? `${currentPath}${secret.path}` : secret.path;
+      // First get the current secret data
+      let fullPath = secret.path;
+      if (currentPath && currentPath.trim() !== '') {
+        const cleanCurrentPath = currentPath.replace(/\/+$/, ''); 
+        const cleanSecretPath = secret.path.replace(/^\/+/, ''); 
+        fullPath = `${cleanCurrentPath}/${cleanSecretPath}`;
+      }
+      
       const data = await window.go.main.App.GetSecretData(config, fullPath, secret.version);
-      setEditSecretForm({ data: data.data });
-      setShowEditDialog(true);
+      
+      if (data && data.data) {
+        setSelectedSecret(secret);
+        setEditingSecretData(data.data);
+        setShowEditDialog(true);
+      }
     } catch (error) {
       setError(`Failed to load secret for editing: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -360,85 +352,78 @@ const Secrets: React.FC = () => {
     if (!selectedSecret) return;
     
     try {
-      const fullPath = currentPath ? `${currentPath}${selectedSecret.path}` : selectedSecret.path;
-      await window.go.main.App.UpdateSecret(config, fullPath, editSecretForm.data);
+      let fullPath = selectedSecret.path;
+      if (currentPath && currentPath.trim() !== '') {
+        const cleanCurrentPath = currentPath.replace(/\/+$/, '');
+        const cleanSecretPath = selectedSecret.path.replace(/^\/+/, '');
+        fullPath = `${cleanCurrentPath}/${cleanSecretPath}`;
+      }
+      
+      await window.go.main.App.UpdateSecret(config, fullPath, editingSecretData);
       setShowEditDialog(false);
+      setEditingSecretData({});
       setSelectedSecret(null);
-      setEditSecretForm({ data: {} });
-      loadSecrets();
+      await loadSecrets(); // Refresh the list
     } catch (error) {
       setError(`Failed to update secret: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  const handleDeleteSecret = async () => {
-    if (!selectedSecret) return;
-    
+  const handleDeleteSecret = async (secret: SecretListItem) => {
     try {
-      // Construct the full path by combining current path with secret path
-      const fullPath = currentPath ? `${currentPath}${selectedSecret.path}` : selectedSecret.path;
-      console.log('Deleting secret with full path:', fullPath);
-      await window.go.main.App.DeleteSecret(config, fullPath, selectedSecret.version);
-      setShowDeleteDialog(false);
-      setSelectedSecret(null);
-      loadSecrets();
+      let fullPath = secret.path;
+      if (currentPath && currentPath.trim() !== '') {
+        const cleanCurrentPath = currentPath.replace(/\/+$/, '');
+        const cleanSecretPath = secret.path.replace(/^\/+/, '');
+        fullPath = `${cleanCurrentPath}/${cleanSecretPath}`;
+      }
+      
+      await window.go.main.App.DeleteSecret(config, fullPath, secret.version);
+      await loadSecrets(); // Refresh the list
     } catch (error) {
       setError(`Failed to delete secret: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  const addDataField = () => {
-    const key = `key${Object.keys(newSecretForm.data).length + 1}`;
-    setNewSecretForm(prev => ({
-      ...prev,
-      data: { ...prev.data, [key]: '' }
-    }));
-  };
-
-  const updateDataField = (oldKey: string, newKey: string, value: string) => {
-    setNewSecretForm(prev => {
-      const newData = { ...prev.data };
-      if (oldKey !== newKey && newData[oldKey] !== undefined) {
-        delete newData[oldKey];
+  const handleCreateSecret = async (path: string, owner: string, usage: string, source: string, data: Record<string, string>) => {
+    try {
+      let fullPath = path;
+      if (currentPath && currentPath.trim() !== '') {
+        const cleanCurrentPath = currentPath.replace(/\/+$/, '');
+        const cleanPath = path.replace(/^\/+/, '');
+        fullPath = `${cleanCurrentPath}/${cleanPath}`;
       }
-      newData[newKey] = value;
-      return { ...prev, data: newData };
-    });
+      
+      await window.go.main.App.CreateSecret(config, fullPath, owner, usage, source, data);
+      setShowCreateDialog(false);
+      await loadSecrets(); // Refresh the list
+    } catch (error) {
+      setError(`Failed to create secret: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
-  const removeDataField = (key: string) => {
-    setNewSecretForm(prev => {
-      const newData = { ...prev.data };
-      delete newData[key];
-      return { ...prev, data: newData };
-    });
-  };
-
-  const addEditDataField = () => {
-    const key = `key${Object.keys(editSecretForm.data).length + 1}`;
-    setEditSecretForm(prev => ({
-      ...prev,
-      data: { ...prev.data, [key]: '' }
-    }));
-  };
-
-  const updateEditDataField = (oldKey: string, newKey: string, value: string) => {
-    setEditSecretForm(prev => {
-      const newData = { ...prev.data };
-      if (oldKey !== newKey && newData[oldKey] !== undefined) {
-        delete newData[oldKey];
-      }
-      newData[newKey] = value;
-      return { ...prev, data: newData };
-    });
-  };
-
-  const removeEditDataField = (key: string) => {
-    setEditSecretForm(prev => {
-      const newData = { ...prev.data };
-      delete newData[key];
-      return { ...prev, data: newData };
-    });
+  // Filter available paths based on current directory context
+  const getFilteredPaths = () => {
+    if (!currentPath) {
+      // If at root, show all top-level paths
+      return availablePaths.filter(path => {
+        if (path === '') return true;
+        const parts = path.replace(/\/+$/, '').split('/');
+        return parts.length === 1; // Only show direct children of root
+      });
+    } else {
+      // If in a subdirectory, show paths that are children of current path
+      const currentClean = currentPath.replace(/\/+$/, '');
+      return availablePaths.filter(path => {
+        if (path === '') return true; // Always allow going back to root
+        if (path.startsWith(currentClean + '/')) {
+          const relativePath = path.substring(currentClean.length + 1);
+          const parts = relativePath.replace(/\/+$/, '').split('/');
+          return parts.length === 1; // Only show direct children
+        }
+        return false;
+      });
+    }
   };
 
   const handleCreateJWTClient = async () => {
@@ -446,16 +431,15 @@ const Secrets: React.FC = () => {
       await window.go.main.App.CreateJWTClient(jwtClientForm);
       setShowJWTClientDialog(false);
       setJwtClientForm({
-        platform: 'dev',
+        platform: '',
         environment: '',
-        team: '',
         path: '',
         owner: '',
         localName: '',
         targetService: '',
         secret: ''
       });
-      loadSecrets();
+      await loadSecrets(); // Refresh the list
     } catch (error) {
       setError(`Failed to create JWT client: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -466,9 +450,8 @@ const Secrets: React.FC = () => {
       await window.go.main.App.CreateJWTServer(jwtServerForm);
       setShowJWTServerDialog(false);
       setJwtServerForm({
-        platform: 'dev',
+        platform: '',
         environment: '',
-        team: '',
         path: '',
         owner: '',
         localName: '',
@@ -476,799 +459,762 @@ const Secrets: React.FC = () => {
         clientName: '',
         clientSecret: ''
       });
-      loadSecrets();
+      await loadSecrets(); // Refresh the list
     } catch (error) {
       setError(`Failed to create JWT server: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
-  useEffect(() => {
-    loadSecrets();
-  }, [config, currentPath]);
-
-  const platforms = ['dev', 'staging', 'production'];
-
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <LockClosedIcon className="w-8 h-8 text-yellow-500" />
-            <div>
-              <h1 className="text-xl font-bold">Yak Secrets GUI</h1>
-              <p className="text-sm text-slate-400">
-                Platform: {config.platform}
-                {currentPath && <span className="ml-2 px-2 py-1 bg-yellow-600 rounded text-xs">Path: {currentPath}</span>}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <button
+    <div style={{ padding: '24px' }}>
+      <Row justify="space-between" style={{ marginBottom: '24px' }}>
+        <Col>
+          <Title level={2}>
+            <SafetyOutlined style={{ marginRight: '8px' }} />
+            Secrets Management
+          </Title>
+          <Text type="secondary">Manage your secrets</Text>
+        </Col>
+        <Col>
+          <Space>
+            <Button 
+              type="primary"
+              icon={<PlusOutlined />}
               onClick={() => setShowCreateDialog(true)}
-              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>Create</span>
-            </button>
-
-            <button
+              Create Secret
+            </Button>
+            <Button 
+              icon={<KeyOutlined />}
               onClick={() => setShowJWTClientDialog(true)}
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              <KeyIcon className="w-4 h-4" />
-              <span>JWT Client</span>
-            </button>
-
-            <button
+              JWT Client
+            </Button>
+            <Button 
+              icon={<KeyOutlined />}
               onClick={() => setShowJWTServerDialog(true)}
-              className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
-              <LockClosedIcon className="w-4 h-4" />
-              <span>JWT Server</span>
-            </button>
-
-            <button
-              onClick={() => setShowConfig(!showConfig)}
-              className="flex items-center space-x-2 bg-slate-600 hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              <span>Config</span>
-            </button>
-
-            <button
+              JWT Server
+            </Button>
+            <Button 
+              icon={<ReloadOutlined />}
               onClick={loadSecrets}
-              disabled={loading}
-              className="flex items-center space-x-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-800 disabled:opacity-50 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              loading={loading}
             >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <ArrowPathIcon className="w-4 h-4" />
-              )}
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
-
-        {showConfig && (
-          <div className="mt-4 p-4 bg-slate-700 rounded-lg">
-            <h3 className="text-lg font-medium mb-4">Secret Configuration</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Platform</label>
-                <select
-                  value={config.platform}
-                  onChange={(e) => setConfig({ ...config, platform: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                >
-                  {platforms.map(platform => (
-                    <option key={platform} value={platform}>{platform}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Environment (optional)</label>
-                <input
-                  type="text"
-                  value={config.environment}
-                  onChange={(e) => setConfig({ ...config, environment: e.target.value })}
-                  placeholder="feature, hotfix, etc."
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Team (optional)</label>
-                <input
-                  type="text"
-                  value={config.team}
-                  onChange={(e) => setConfig({ ...config, team: e.target.value })}
-                  placeholder="backend, frontend, etc."
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-2">Secret Path (optional)</label>
-              <input
-                type="text"
-                value={currentPath}
-                onChange={(e) => setCurrentPath(e.target.value)}
-                placeholder="myapp/, myapp/database, etc."
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              />
-            </div>
-          </div>
-        )}
-      </header>
+              Refresh
+            </Button>
+          </Space>
+        </Col>
+      </Row>
 
       {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-900 border border-red-700 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <XCircleIcon className="w-5 h-5 text-red-400" />
-            <span className="text-red-100">{error}</span>
-          </div>
-        </div>
+        <Alert
+          message={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: '16px' }}
+        />
       )}
+
+      <Card style={{ marginBottom: '16px' }}>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Text strong>Platform:</Text>
+              <Select
+                placeholder="Select platform..."
+                value={config.platform}
+                onChange={(value) => setConfig(prev => ({ ...prev, platform: value, environment: '' }))}
+                style={{ width: '100%', marginLeft: '8px' }}
+                loading={configLoading}
+              >
+                {availablePlatforms.map(platform => (
+                  <Option key={platform} value={platform}>{platform}</Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={8}>
+              <Text strong>Environment:</Text>
+              <Select
+                placeholder="Select environment..."
+                value={config.environment}
+                onChange={(value) => setConfig(prev => ({ ...prev, environment: value }))}
+                style={{ width: '100%', marginLeft: '8px' }}
+                allowClear
+                disabled={!config.platform}
+              >
+                <Option value="">All environments</Option>
+                {availableEnvironments.map(env => (
+                  <Option key={env} value={env}>{env}</Option>
+                ))}
+              </Select>
+            </Col>
+            <Col span={8}>
+              <Text strong>Path:</Text>
+              <Select
+                placeholder="Select path prefix..."
+                value={currentPath}
+                onChange={(value) => {
+                  setCurrentPath(value || '');
+                  // Update breadcrumbs when path is selected from dropdown
+                  if (value) {
+                    const pathParts = value.split('/').filter(part => part !== '');
+                    setBreadcrumbs(pathParts);
+                  } else {
+                    setBreadcrumbs([]);
+                  }
+                }}
+                style={{ width: '100%', marginLeft: '8px' }}
+                allowClear
+                showSearch
+                loading={pathsLoading}
+                disabled={!config.platform || pathsLoading}
+                filterOption={(input, option) =>
+                  option?.children?.toString().toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {getFilteredPaths().map(path => (
+                  <Option key={path} value={path}>
+                    {path === '' ? 'All paths' : path}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+        </Space>
+      </Card>
 
       {/* Breadcrumb Navigation */}
       {(breadcrumbs.length > 0 || currentPath) && (
-        <div className="mx-6 mt-4 p-3 bg-slate-800 rounded-lg border border-slate-700">
-          <div className="flex items-center space-x-2">
-            <button
+        <Card style={{ marginBottom: '16px' }}>
+          <Space>
+            <Button
+              size="small"
               onClick={handleGoBack}
-              className="flex items-center space-x-1 bg-slate-600 hover:bg-slate-700 px-2 py-1 rounded text-sm transition-colors"
+              icon={<span>←</span>}
             >
-              <span>←</span>
-              <span>Back</span>
-            </button>
+              Back
+            </Button>
             
-            <span className="text-slate-400">/</span>
+            <span style={{ color: '#999' }}>/</span>
             
-            <button
+            <Button
+              type="link"
+              size="small"
               onClick={() => {
                 setCurrentPath('');
                 setBreadcrumbs([]);
               }}
-              className="text-yellow-400 hover:text-yellow-300 text-sm transition-colors"
+              style={{ padding: 0, height: 'auto' }}
             >
               root
-            </button>
+            </Button>
             
             {breadcrumbs.map((crumb, index) => (
-              <React.Fragment key={index}>
-                <span className="text-slate-400">/</span>
-                <button
+              <Space key={index} size={0}>
+                <span style={{ color: '#999' }}>/</span>
+                <Button
+                  type="link"
+                  size="small"
                   onClick={() => handleBreadcrumbClick(index)}
-                  className="text-yellow-400 hover:text-yellow-300 text-sm transition-colors"
+                  style={{ padding: 0, height: 'auto', color: '#1890ff' }}
                 >
                   {crumb}
-                </button>
-              </React.Fragment>
+                </Button>
+              </Space>
             ))}
-          </div>
-        </div>
+          </Space>
+        </Card>
       )}
 
-      <main className="p-6">
-        {secrets.length > 0 && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Total Secrets</h3>
-              <p className="text-2xl font-bold">{secrets.length}</p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Folders</h3>
-              <p className="text-2xl font-bold text-blue-500">
-                {secrets.filter(s => s.path?.endsWith('/')).length}
-              </p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Secrets</h3>
-              <p className="text-2xl font-bold text-green-500">
-                {secrets.filter(s => !s.path?.endsWith('/')).length}
-              </p>
-            </div>
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-2">Paths</h3>
-              <p className="text-2xl font-bold text-purple-500">
-                {secrets.length}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {loading && secrets.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-slate-400">Loading secrets...</p>
-            </div>
+      <div style={{ minHeight: '400px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '16px' }}>Loading secrets...</div>
           </div>
         ) : secrets.length === 0 ? (
-          <div className="text-center py-12">
-            <LockClosedIcon className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400">No secrets found</p>
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <KeyOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />
+            <div style={{ marginTop: '16px', color: '#999' }}>
+              No secrets found
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {secrets.map((secret, index) => (
-              <SecretCard
-                key={secret?.path || `secret-${index}`}
-                secret={secret}
-                config={config}
-                onAction={loadSecrets}
-                onView={handleViewSecret}
-                onEdit={handleEditSecret}
-                onDelete={(secret) => { setSelectedSecret(secret); setShowDeleteDialog(true); }}
-                onNavigate={handleNavigate}
-              />
-            ))}
-          </div>
+          <Row gutter={[16, 16]}>
+            {secrets.map((secret, index) => {
+              const isFolder = secret.path.endsWith('/');
+              const displayName = isFolder ? secret.path.slice(0, -1) : secret.path;
+              
+              return (
+                <Col xs={24} sm={12} md={8} lg={6} key={secret?.path || `secret-${index}`}>
+                  <Card
+                    title={
+                      <Space>
+                        {isFolder ? (
+                          <FolderOutlined style={{ color: '#1890ff' }} />
+                        ) : (
+                          <KeyOutlined style={{ color: '#faad14' }} />
+                        )}
+                        <span>{displayName}</span>
+                      </Space>
+                    }
+                    size="small"
+                    style={{ 
+                      marginBottom: 16,
+                      cursor: isFolder ? 'pointer' : 'default'
+                    }}
+                    onClick={isFolder ? () => handleNavigate(secret.path) : undefined}
+                    actions={
+                      isFolder ? [
+                        <Button
+                          key="open"
+                          type="text"
+                          icon={<FolderOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNavigate(secret.path);
+                          }}
+                          style={{ color: '#1890ff' }}
+                        >
+                          Open Folder
+                        </Button>
+                      ] : [
+                        <Button
+                          key="view"
+                          type="text"
+                          icon={<EyeOutlined />}
+                          onClick={() => handleViewSecret(secret)}
+                        >
+                          View
+                        </Button>,
+                        <Button
+                          key="edit"
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleEditSecret(secret)}
+                        >
+                          Edit
+                        </Button>,
+                        <Popconfirm
+                          key="delete"
+                          title="Are you sure you want to delete this secret?"
+                          onConfirm={() => handleDeleteSecret(secret)}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                          >
+                            Delete
+                          </Button>
+                        </Popconfirm>
+                      ]
+                    }
+                  >
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Row justify="space-between">
+                        <Col><Text type="secondary">Owner:</Text></Col>
+                        <Col><Text>{secret.owner}</Text></Col>
+                      </Row>
+                      <Row justify="space-between">
+                        <Col><Text type="secondary">Usage:</Text></Col>
+                        <Col><Text>{secret.usage}</Text></Col>
+                      </Row>
+                      {!isFolder && (
+                        <Row justify="space-between">
+                          <Col><Text type="secondary">Version:</Text></Col>
+                          <Col><Text code>{secret.version}</Text></Col>
+                        </Row>
+                      )}
+                    </Space>
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
         )}
-      </main>
+      </div>
 
-      {/* View Secret Dialog */}
+      {/* View Secret Modal */}
       {showSecretDialog && secretData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto border border-slate-700">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Secret: {secretData.path}</h3>
-              <button
-                onClick={() => setShowValues(!showValues)}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md text-sm"
-              >
-                {showValues ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                <span>{showValues ? 'Hide' : 'Show'}</span>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-2">Metadata</h4>
-                <div className="text-xs space-y-1 text-slate-300">
-                  <p>Owner: {secretData.metadata.owner}</p>
-                  <p>Usage: {secretData.metadata.usage}</p>
-                  <p>Source: {secretData.metadata.source}</p>
-                  <p>Version: {secretData.metadata.version}</p>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-2">Data</h4>
-                <div className="space-y-2">
-                  {Object.entries(secretData.data).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-sm text-slate-300 font-mono">{key}:</span>
-                      <span className="text-sm text-white font-mono">
-                        {showValues ? value : '••••••••'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+        <Modal
+          title={`Secret: ${secretData.path || 'Unknown'}`}
+          open={showSecretDialog}
+          onCancel={() => setShowSecretDialog(false)}
+          footer={[
+            <Button key="close" onClick={() => setShowSecretDialog(false)}>
+              Close
+            </Button>
+          ]}
+          width={600}
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div>
+              <Text strong>Metadata:</Text>
+              <div style={{ marginTop: 8, fontSize: '12px' }}>
+                <Text type="secondary">Owner: {secretData.metadata?.owner || 'Unknown'}</Text><br />
+                <Text type="secondary">Usage: {secretData.metadata?.usage || 'Unknown'}</Text><br />
+                <Text type="secondary">Source: {secretData.metadata?.source || 'Unknown'}</Text><br />
+                <Text type="secondary">Version: {secretData.metadata?.version || 'Unknown'}</Text>
               </div>
             </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowSecretDialog(false)}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Close
-              </button>
+            <div>
+              <Text strong>Data:</Text>
+              <div style={{ marginTop: 8 }}>
+                {secretData.data && typeof secretData.data === 'object' ? (
+                  Object.entries(secretData.data).map(([key, value]) => (
+                    <Row key={key} justify="space-between" style={{ marginBottom: 8 }}>
+                      <Col><Text code>{key}:</Text></Col>
+                      <Col><Input.Password value={String(value)} readOnly style={{ width: 200 }} /></Col>
+                    </Row>
+                  ))
+                ) : (
+                  <Text type="secondary">No secret data available</Text>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </Space>
+        </Modal>
       )}
 
-      {/* Create Secret Dialog */}
-      {showCreateDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Create New Secret</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Path</label>
-                <input
-                  type="text"
-                  value={newSecretForm.path}
-                  onChange={(e) => setNewSecretForm({ ...newSecretForm, path: e.target.value })}
-                  placeholder="myapp/database"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Owner</label>
-                <input
-                  type="text"
-                  value={newSecretForm.owner}
-                  onChange={(e) => setNewSecretForm({ ...newSecretForm, owner: e.target.value })}
-                  placeholder="team-backend"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Usage</label>
-                <input
-                  type="text"
-                  value={newSecretForm.usage}
-                  onChange={(e) => setNewSecretForm({ ...newSecretForm, usage: e.target.value })}
-                  placeholder="Database credentials"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Source</label>
-                <select
-                  value={newSecretForm.source}
-                  onChange={(e) => setNewSecretForm({ ...newSecretForm, source: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                >
-                  <option value="manual">Manual</option>
-                  <option value="generated">Generated</option>
-                  <option value="imported">Imported</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-slate-400">Data</label>
-                  <button
-                    onClick={addDataField}
-                    className="flex items-center space-x-1 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
-                  >
-                    <PlusIcon className="w-3 h-3" />
-                    <span>Add</span>
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {Object.entries(newSecretForm.data).map(([key, value]) => (
-                    <div key={key} className="flex space-x-2">
-                      <input
-                        type="text"
-                        value={key}
-                        onChange={(e) => updateDataField(key, e.target.value, value)}
-                        placeholder="key"
-                        className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                      <input
-                        type="text"
-                        value={value}
-                        onChange={(e) => updateDataField(key, key, e.target.value)}
-                        placeholder="value"
-                        className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                      <button
-                        onClick={() => removeDataField(key)}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-                      >
-                        <TrashIcon className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={handleCreateSecret}
-                disabled={!newSecretForm.path || !newSecretForm.owner || !newSecretForm.usage}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Create
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowCreateDialog(false);
-                  setNewSecretForm({ path: '', owner: '', usage: '', source: 'manual', data: {} });
-                }}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Secret Dialog */}
+      {/* Edit Secret Modal */}
       {showEditDialog && selectedSecret && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Edit Secret: {selectedSecret.path}</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-slate-400">Data</label>
-                  <button
-                    onClick={addEditDataField}
-                    className="flex items-center space-x-1 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
-                  >
-                    <PlusIcon className="w-3 h-3" />
-                    <span>Add</span>
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {Object.entries(editSecretForm.data).map(([key, value]) => (
-                    <div key={key} className="flex space-x-2">
-                      <input
-                        type="text"
-                        value={key}
-                        onChange={(e) => updateEditDataField(key, e.target.value, value)}
-                        placeholder="key"
-                        className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                      <input
-                        type="text"
-                        value={value}
-                        onChange={(e) => updateEditDataField(key, key, e.target.value)}
-                        placeholder="value"
-                        className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                      />
-                      <button
-                        onClick={() => removeEditDataField(key)}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-                      >
-                        <TrashIcon className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={handleUpdateSecret}
-                disabled={Object.keys(editSecretForm.data).length === 0}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Update
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowEditDialog(false);
-                  setSelectedSecret(null);
-                  setEditSecretForm({ data: {} });
-                }}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          title={`Edit Secret: ${selectedSecret.path}`}
+          open={showEditDialog}
+          onCancel={() => {
+            setShowEditDialog(false);
+            setEditingSecretData({});
+            setSelectedSecret(null);
+          }}
+          footer={[
+            <Button key="cancel" onClick={() => {
+              setShowEditDialog(false);
+              setEditingSecretData({});
+              setSelectedSecret(null);
+            }}>
+              Cancel
+            </Button>,
+            <Button key="save" type="primary" onClick={handleUpdateSecret}>
+              Save Changes
+            </Button>
+          ]}
+          width={700}
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text>Edit the key-value pairs for this secret:</Text>
+            {Object.entries(editingSecretData).map(([key, value]) => (
+              <Row key={key} gutter={16} style={{ marginBottom: 8 }}>
+                <Col span={8}>
+                  <Input
+                    value={key}
+                    disabled
+                    addonBefore="Key"
+                  />
+                </Col>
+                <Col span={16}>
+                  <Input.Password
+                    value={value}
+                    onChange={(e) => setEditingSecretData(prev => ({
+                      ...prev,
+                      [key]: e.target.value
+                    }))}
+                    placeholder="Secret value"
+                  />
+                </Col>
+              </Row>
+            ))}
+            <Button
+              type="dashed"
+              onClick={() => {
+                const newKey = `new_key_${Date.now()}`;
+                setEditingSecretData(prev => ({
+                  ...prev,
+                  [newKey]: ''
+                }));
+              }}
+              style={{ width: '100%' }}
+              icon={<PlusOutlined />}
+            >
+              Add New Key-Value Pair
+            </Button>
+          </Space>
+        </Modal>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && selectedSecret && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[500px] border border-slate-700">
-            <div className="flex items-center space-x-3 mb-4">
-              <ExclamationTriangleIcon className="w-6 h-6 text-red-500" />
-              <h3 className="text-lg font-semibold text-white">Delete Secret</h3>
-            </div>
-            
-            <p className="text-slate-300 mb-6">
-              Are you sure you want to delete secret <span className="font-mono text-white">{selectedSecret.path}</span> version {selectedSecret.version}?
-              This action cannot be undone.
-            </p>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDeleteSecret}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Delete
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowDeleteDialog(false);
-                  setSelectedSecret(null);
-                }}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Create Secret Modal */}
+      {showCreateDialog && (
+        <CreateSecretModal
+          visible={showCreateDialog}
+          onCancel={() => setShowCreateDialog(false)}
+          onSubmit={handleCreateSecret}
+          currentPath={currentPath}
+        />
       )}
 
-      {/* JWT Client Dialog */}
+      {/* JWT Client Modal */}
       {showJWTClientDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Create JWT Client Secret</h3>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Platform</label>
-                  <select
+        <Modal
+          title="Create JWT Client Secret"
+          open={showJWTClientDialog}
+          onCancel={() => setShowJWTClientDialog(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setShowJWTClientDialog(false)}>
+              Cancel
+            </Button>,
+            <Button 
+              key="create" 
+              type="primary" 
+              onClick={handleCreateJWTClient}
+              disabled={!jwtClientForm.path || !jwtClientForm.owner || !jwtClientForm.localName || !jwtClientForm.targetService || !jwtClientForm.secret}
+            >
+              Create JWT Client
+            </Button>
+          ]}
+          width={600}
+        >
+          <Form layout="vertical">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Platform">
+                  <Input
                     value={jwtClientForm.platform}
                     onChange={(e) => setJwtClientForm({ ...jwtClientForm, platform: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="dev">dev</option>
-                    <option value="staging">staging</option>
-                    <option value="production">production</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Environment</label>
-                  <input
-                    type="text"
+                    placeholder="e.g., dev"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Environment">
+                  <Input
                     value={jwtClientForm.environment}
                     onChange={(e) => setJwtClientForm({ ...jwtClientForm, environment: e.target.value })}
-                    placeholder="feature, hotfix, etc."
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., staging"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Path *</label>
-                <input
-                  type="text"
-                  value={jwtClientForm.path}
-                  onChange={(e) => setJwtClientForm({ ...jwtClientForm, path: e.target.value })}
-                  placeholder="personal-assistant/jwt"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Owner *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Path" required>
+              <Input
+                value={jwtClientForm.path}
+                onChange={(e) => setJwtClientForm({ ...jwtClientForm, path: e.target.value })}
+                placeholder="e.g., personal-assistant/jwt"
+              />
+            </Form.Item>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Owner" required>
+                  <Input
                     value={jwtClientForm.owner}
                     onChange={(e) => setJwtClientForm({ ...jwtClientForm, owner: e.target.value })}
-                    placeholder="team-backend"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., SRE Team"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Team</label>
-                  <input
-                    type="text"
-                    value={jwtClientForm.team}
-                    onChange={(e) => setJwtClientForm({ ...jwtClientForm, team: e.target.value })}
-                    placeholder="backend, frontend, etc."
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Local Name *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Local Name" required>
+                  <Input
                     value={jwtClientForm.localName}
                     onChange={(e) => setJwtClientForm({ ...jwtClientForm, localName: e.target.value })}
-                    placeholder="personal-assistant"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., personal-assistant"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Target Service *</label>
-                  <input
-                    type="text"
-                    value={jwtClientForm.targetService}
-                    onChange={(e) => setJwtClientForm({ ...jwtClientForm, targetService: e.target.value })}
-                    placeholder="organization_admin"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Secret *</label>
-                <input
-                  type="password"
-                  value={jwtClientForm.secret}
-                  onChange={(e) => setJwtClientForm({ ...jwtClientForm, secret: e.target.value })}
-                  placeholder="HMAC-SHA256 Secret"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={handleCreateJWTClient}
-                disabled={!jwtClientForm.path || !jwtClientForm.owner || !jwtClientForm.localName || !jwtClientForm.targetService || !jwtClientForm.secret}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Create JWT Client
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowJWTClientDialog(false);
-                  setJwtClientForm({
-                    platform: 'dev',
-                    environment: '',
-                    team: '',
-                    path: '',
-                    owner: '',
-                    localName: '',
-                    targetService: '',
-                    secret: ''
-                  });
-                }}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Target Service" required>
+              <Input
+                value={jwtClientForm.targetService}
+                onChange={(e) => setJwtClientForm({ ...jwtClientForm, targetService: e.target.value })}
+                placeholder="e.g., api-service"
+              />
+            </Form.Item>
+            <Form.Item label="Secret" required>
+              <Input.Password
+                value={jwtClientForm.secret}
+                onChange={(e) => setJwtClientForm({ ...jwtClientForm, secret: e.target.value })}
+                placeholder="Enter secret value"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
       )}
 
-      {/* JWT Server Dialog */}
+      {/* JWT Server Modal */}
       {showJWTServerDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-[700px] max-h-[80vh] overflow-y-auto border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Create JWT Server Secret</h3>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Platform</label>
-                  <select
+        <Modal
+          title="Create JWT Server Secret"
+          open={showJWTServerDialog}
+          onCancel={() => setShowJWTServerDialog(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setShowJWTServerDialog(false)}>
+              Cancel
+            </Button>,
+            <Button 
+              key="create" 
+              type="primary" 
+              onClick={handleCreateJWTServer}
+              disabled={!jwtServerForm.path || !jwtServerForm.owner || !jwtServerForm.localName || !jwtServerForm.serviceName || !jwtServerForm.clientName || !jwtServerForm.clientSecret}
+            >
+              Create JWT Server
+            </Button>
+          ]}
+          width={600}
+        >
+          <Form layout="vertical">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Platform">
+                  <Input
                     value={jwtServerForm.platform}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, platform: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="dev">dev</option>
-                    <option value="staging">staging</option>
-                    <option value="production">production</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Environment</label>
-                  <input
-                    type="text"
+                    placeholder="e.g., dev"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Environment">
+                  <Input
                     value={jwtServerForm.environment}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, environment: e.target.value })}
-                    placeholder="feature, hotfix, etc."
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., staging"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Path *</label>
-                <input
-                  type="text"
-                  value={jwtServerForm.path}
-                  onChange={(e) => setJwtServerForm({ ...jwtServerForm, path: e.target.value })}
-                  placeholder="doctolib/secrets"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Owner *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Path" required>
+              <Input
+                value={jwtServerForm.path}
+                onChange={(e) => setJwtServerForm({ ...jwtServerForm, path: e.target.value })}
+                placeholder="e.g., api-service/jwt"
+              />
+            </Form.Item>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Owner" required>
+                  <Input
                     value={jwtServerForm.owner}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, owner: e.target.value })}
-                    placeholder="team-backend"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., Backend Team"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Team</label>
-                  <input
-                    type="text"
-                    value={jwtServerForm.team}
-                    onChange={(e) => setJwtServerForm({ ...jwtServerForm, team: e.target.value })}
-                    placeholder="backend, frontend, etc."
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Local Name *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Local Name" required>
+                  <Input
                     value={jwtServerForm.localName}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, localName: e.target.value })}
-                    placeholder="monolith"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., api-service"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Service Name *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Service Name" required>
+                  <Input
                     value={jwtServerForm.serviceName}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, serviceName: e.target.value })}
-                    placeholder="organization_admin"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., api-service"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Client Name *</label>
-                  <input
-                    type="text"
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Client Name" required>
+                  <Input
                     value={jwtServerForm.clientName}
                     onChange={(e) => setJwtServerForm({ ...jwtServerForm, clientName: e.target.value })}
-                    placeholder="personal-assistant"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., personal-assistant"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Client Secret *</label>
-                  <input
-                    type="password"
-                    value={jwtServerForm.clientSecret}
-                    onChange={(e) => setJwtServerForm({ ...jwtServerForm, clientSecret: e.target.value })}
-                    placeholder="HMAC-SHA256 Secret"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={handleCreateJWTServer}
-                disabled={!jwtServerForm.path || !jwtServerForm.owner || !jwtServerForm.localName || !jwtServerForm.serviceName || !jwtServerForm.clientName || !jwtServerForm.clientSecret}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Create JWT Server
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowJWTServerDialog(false);
-                  setJwtServerForm({
-                    platform: 'dev',
-                    environment: '',
-                    team: '',
-                    path: '',
-                    owner: '',
-                    localName: '',
-                    serviceName: '',
-                    clientName: '',
-                    clientSecret: ''
-                  });
-                }}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Client Secret" required>
+              <Input.Password
+                value={jwtServerForm.clientSecret}
+                onChange={(e) => setJwtServerForm({ ...jwtServerForm, clientSecret: e.target.value })}
+                placeholder="Enter client secret value"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
       )}
     </div>
+  );
+};
+
+// Create Secret Modal Component
+const CreateSecretModal: React.FC<{
+  visible: boolean;
+  onCancel: () => void;
+  onSubmit: (path: string, owner: string, usage: string, source: string, data: Record<string, string>) => void;
+  currentPath: string;
+}> = ({ visible, onCancel, onSubmit, currentPath }) => {
+  const [form] = Form.useForm();
+  const [secretData, setSecretData] = useState<Record<string, string>>({});
+
+  const handleSubmit = () => {
+    form.validateFields().then((values) => {
+      onSubmit(values.path, values.owner, values.usage, values.source, secretData);
+      form.resetFields();
+      setSecretData({});
+    });
+  };
+
+  return (
+    <Modal
+      title="Create New Secret"
+      open={visible}
+      onCancel={() => {
+        onCancel();
+        form.resetFields();
+        setSecretData({});
+      }}
+      footer={[
+        <Button key="cancel" onClick={() => {
+          onCancel();
+          form.resetFields();
+          setSecretData({});
+        }}>
+          Cancel
+        </Button>,
+        <Button key="create" type="primary" onClick={handleSubmit}>
+          Create Secret
+        </Button>
+      ]}
+      width={800}
+    >
+      <Form form={form} layout="vertical">
+        <Form.Item
+          name="path"
+          label="Secret Path"
+          rules={[{ required: true, message: 'Please enter the secret path' }]}
+          initialValue=""
+        >
+          <Input 
+            placeholder="e.g., myapp/database" 
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </Form.Item>
+        
+        <Row gutter={16}>
+          <Col span={8}>
+            <Form.Item
+              name="owner"
+              label="Owner"
+              rules={[{ required: true, message: 'Please enter the owner' }]}
+            >
+              <Input 
+                placeholder="e.g., SRE, Backend Team" 
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="usage"
+              label="Usage"
+              rules={[{ required: true, message: 'Please enter the usage' }]}
+            >
+              <Input 
+                placeholder="e.g., used by myapp" 
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
+            <Form.Item
+              name="source"
+              label="Source"
+              rules={[{ required: true, message: 'Please enter the source' }]}
+            >
+              <Input 
+                placeholder="e.g., manual, terraform" 
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <div style={{ marginTop: 16 }}>
+          <Text strong>Secret Data:</Text>
+          <div style={{ marginTop: 8 }}>
+            {Object.entries(secretData).map(([key, value]) => (
+              <Row key={key} gutter={16} style={{ marginBottom: 8 }}>
+                <Col span={8}>
+                  <Input
+                    value={key}
+                    onChange={(e) => {
+                      const newKey = e.target.value;
+                      const newData = { ...secretData };
+                      delete newData[key];
+                      newData[newKey] = value;
+                      setSecretData(newData);
+                    }}
+                    placeholder="Key name"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Input.Password
+                    value={value}
+                    onChange={(e) => setSecretData(prev => ({
+                      ...prev,
+                      [key]: e.target.value
+                    }))}
+                    placeholder="Secret value"
+                  />
+                </Col>
+                <Col span={4}>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      const newData = { ...secretData };
+                      delete newData[key];
+                      setSecretData(newData);
+                    }}
+                  />
+                </Col>
+              </Row>
+            ))}
+            <Button
+              type="dashed"
+              onClick={() => {
+                const newKey = `key_${Date.now()}`;
+                setSecretData(prev => ({
+                  ...prev,
+                  [newKey]: ''
+                }));
+              }}
+              style={{ width: '100%' }}
+              icon={<PlusOutlined />}
+            >
+              Add Key-Value Pair
+            </Button>
+          </div>
+        </div>
+      </Form>
+    </Modal>
   );
 };
 
