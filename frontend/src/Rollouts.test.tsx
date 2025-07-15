@@ -213,7 +213,7 @@ describe('Rollouts Component', () => {
     
     await waitFor(() => {
       expect(window.go.main.App.PromoteRollout).toHaveBeenCalledWith(
-        { server: '', namespace: '' },
+        { server: '', namespace: 'production' },
         'api-service',
         false
       )
@@ -234,7 +234,7 @@ describe('Rollouts Component', () => {
     
     await waitFor(() => {
       expect(window.go.main.App.AbortRollout).toHaveBeenCalledWith(
-        { server: '', namespace: '' },
+        { server: '', namespace: 'production' },
         'api-service'
       )
     })
@@ -254,7 +254,7 @@ describe('Rollouts Component', () => {
     
     await waitFor(() => {
       expect(window.go.main.App.RestartRollout).toHaveBeenCalledWith(
-        { server: '', namespace: '' },
+        { server: '', namespace: 'production' },
         'api-service'
       )
     })
@@ -274,7 +274,7 @@ describe('Rollouts Component', () => {
     
     await waitFor(() => {
       expect(window.go.main.App.RestartRollout).toHaveBeenCalledWith(
-        { server: '', namespace: '' },
+        { server: '', namespace: 'production' },
         'api-service'
       )
     })
