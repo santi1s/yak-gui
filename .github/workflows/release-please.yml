@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'CHANGELOG.md'
-      - '.release-please-manifest.json'
-      - 'frontend/package.json'
-      - 'wails.json'
-      - 'app.go'
   workflow_dispatch:
 
 permissions:

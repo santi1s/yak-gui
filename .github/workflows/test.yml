@@ -10,6 +10,9 @@ on:
       - '.release-please-config.json'
       - '.release-please-manifest.json'
       - 'CHANGELOG.md'
+      - 'frontend/package.json'
+      - 'wails.json'
+      - 'app.go'
   pull_request:
     branches: [ main ]
     paths-ignore:
@@ -32,7 +35,7 @@ jobs:
     name: Test GUI build
     runs-on: macos-latest
     timeout-minutes: 15
-    if: ${{ github.actor != 'github-actions[bot]' && !startsWith(github.head_ref, 'release-please--branches--') }}
+    if: ${{ !startsWith(github.head_ref, 'release-please--branches--') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -65,7 +68,7 @@ jobs:
   test-frontend:
     name: Test frontend
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions[bot]' && !startsWith(github.head_ref, 'release-please--branches--') }}
+    if: ${{ !startsWith(github.head_ref, 'release-please--branches--') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,7 +105,7 @@ jobs:
   test-backend:
     name: Test backend
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions[bot]' && !startsWith(github.head_ref, 'release-please--branches--') }}
+    if: ${{ !startsWith(github.head_ref, 'release-please--branches--') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,7 +126,7 @@ jobs:
     needs: [test-gui, test-frontend, test-backend]
     name: "required tests passed"
     runs-on: ubuntu-latest
-    if: ${{ always() && github.actor != 'github-actions[bot]' && !startsWith(github.head_ref, 'release-please--branches--') }}
+    if: ${{ always() && !startsWith(github.head_ref, 'release-please--branches--') }}
     timeout-minutes: 1
     steps:
       - name: Fail job on any previous error
