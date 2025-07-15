@@ -1,8 +1,8 @@
 {
-  "name": "yak-argocd-frontend",
-  "version": "1.5.0",
+  "name": "yak-gui-frontend",
+  "version": "1.6.0",
   "type": "module",
-  "description": "ArgoCD GUI Frontend for Yak CLI",
+  "description": "Comprehensive GUI Frontend for Yak CLI - ArgoCD, secrets, rollouts, certificates, and more",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
