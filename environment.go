@@ -313,8 +313,6 @@ func (a *App) ImportShellEnvironment() error {
 		if value, exists := shellEnv[varName]; exists && value != "" {
 			if err := os.Setenv(varName, value); err != nil {
 				fmt.Printf("Warning: failed to set %s: %v\n", varName, err)
-			} else {
-				fmt.Printf("Imported %s=%s\n", varName, value)
 			}
 		}
 	}
