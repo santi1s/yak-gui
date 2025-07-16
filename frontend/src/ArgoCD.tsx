@@ -621,7 +621,7 @@ const AppCard: React.FC<{
 };
 
 // Main ArgoCD Component
-const ArgoCD: React.FC = () => {
+const ArgoCD: React.FC<{ profileChangeCounter?: number }> = ({ profileChangeCounter = 0 }) => {
   const [apps, setApps] = useState<ArgoApp[]>([]);
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<ArgoConfig>({
@@ -671,13 +671,20 @@ const ArgoCD: React.FC = () => {
           // Auto-load apps when server configuration changes
           if (server) {
             try {
-              const apps = await window.go.main.App.GetArgoApps({ ...config, server });
+              const updatedConfig = { ...config, server };
+              const apps = await window.go.main.App.GetArgoApps(updatedConfig);
               setApps(apps);
+              setError(null); // Clear any previous errors
             } catch (error) {
               console.warn('Failed to auto-load apps after server update:', error);
               setError(`Failed to load applications from ${server}`);
             }
           }
+        } else {
+          // No profile set, clear server configuration
+          setConfig(prev => ({ ...prev, server: '' }));
+          setApps([]);
+          setError(null);
         }
       }
     } catch (error) {
@@ -726,6 +733,13 @@ const ArgoCD: React.FC = () => {
   useEffect(() => {
     updateArgoCDServer();
   }, []);
+
+  // Listen for profile changes from the parent component
+  useEffect(() => {
+    if (profileChangeCounter > 0) {
+      updateArgoCDServer();
+    }
+  }, [profileChangeCounter]);
 
   useEffect(() => {
     if (config.server && autoRefresh) {

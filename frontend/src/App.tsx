@@ -678,9 +678,11 @@ const App: React.FC = () => {
   const [isShellLoading, setIsShellLoading] = useState(true);
   const [featureFlags] = useFeatureFlags();
 
+  const [profileChangeCounter, setProfileChangeCounter] = useState(0);
+  
   const updateArgoCDServer = async () => {
-    // This function is now a no-op since ArgoCD component handles its own server updates
-    // Kept for compatibility with EnvironmentConfig component
+    // Trigger a re-render in the ArgoCD component to update server configuration
+    setProfileChangeCounter(prev => prev + 1);
   };
 
 
@@ -719,7 +721,7 @@ const App: React.FC = () => {
             {isShellLoading && <LoadingOutlined style={{ marginLeft: '8px' }} />}
           </span>
         ),
-        children: <ArgoCD />,
+        children: <ArgoCD profileChangeCounter={profileChangeCounter} />,
         disabled: isShellLoading,
       });
     }
