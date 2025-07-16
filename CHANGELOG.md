@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/santi1s/yak-gui/compare/v1.13.0...v1.14.0) (2025-07-16)
+
+
+### Features
+
+* improve ArgoCD tab with list view, pagination, and refactoring ([3d63f6b](https://github.com/santi1s/yak-gui/commit/3d63f6b7f8492d5a6b0f2cb1ca769357bc9cc7a7))
+* improve ArgoCD tab with list view, pagination, and refactoring ([97825e9](https://github.com/santi1s/yak-gui/commit/97825e91067c24ceba084c022c9516586c1bebb6))
+
 ## [1.13.0](https://github.com/santi1s/yak-gui/compare/v1.12.1...v1.13.0) (2025-07-15)
 
 
