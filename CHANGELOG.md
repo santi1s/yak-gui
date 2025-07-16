@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1](https://github.com/santi1s/yak-gui/compare/v1.14.0...v1.14.1) (2025-07-16)
+
+
+### Bug Fixes
+
+* restore ArgoCD server configuration after profile changes ([00ab23e](https://github.com/santi1s/yak-gui/commit/00ab23e34dcf3963c4d1f3612b7f0f9626b8ea8e))
+
 ## [1.14.0](https://github.com/santi1s/yak-gui/compare/v1.13.0...v1.14.0) (2025-07-16)
 
 
