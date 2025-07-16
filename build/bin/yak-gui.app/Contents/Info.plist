@@ -10,11 +10,11 @@
         <key>CFBundleIdentifier</key>
         <string>com.wails.yak-gui</string>
         <key>CFBundleVersion</key>
-        <string>1.10.1</string>
+        <string>1.12.1</string>
         <key>CFBundleGetInfoString</key>
         <string>Built using Wails (https://wails.io)</string>
         <key>CFBundleShortVersionString</key>
-        <string>1.10.1</string>
+        <string>1.12.1</string>
         <key>CFBundleIconFile</key>
         <string>iconfile</string>
         <key>LSMinimumSystemVersion</key>
