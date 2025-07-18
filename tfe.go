@@ -19,22 +19,27 @@ type TFEConfig struct {
 
 // TFEWorkspace represents a TFE workspace
 type TFEWorkspace struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Description      string            `json:"description,omitempty"`
-	Environment      string            `json:"environment,omitempty"`
-	TerraformVersion string            `json:"terraformVersion,omitempty"`
-	Status           string            `json:"status"` // active, locked, disabled
-	LastRun          string            `json:"lastRun,omitempty"`
-	Owner            string            `json:"owner,omitempty"`
-	Tags             []string          `json:"tags,omitempty"`
-	Organization     string            `json:"organization"`
-	CreatedAt        string            `json:"createdAt,omitempty"`
-	UpdatedAt        string            `json:"updatedAt,omitempty"`
-	AutoApply        bool              `json:"autoApply"`
-	TerraformWorking bool              `json:"terraformWorking"`
-	VCSRepo          *TFEVCSRepo       `json:"vcsRepo,omitempty"`
-	Variables        map[string]string `json:"variables,omitempty"`
+	ID                string            `json:"id"`
+	Name              string            `json:"name"`
+	Description       string            `json:"description,omitempty"`
+	Environment       string            `json:"environment,omitempty"`
+	TerraformVersion  string            `json:"terraform_version,omitempty"`
+	Status            string            `json:"status"` // active, locked, disabled
+	LastRun           string            `json:"lastRun,omitempty"`
+	Owner             string            `json:"owner,omitempty"`
+	Tags              []string          `json:"tag_names,omitempty"`
+	Organization      string            `json:"organization"`
+	CreatedAt         string            `json:"created_at,omitempty"`
+	UpdatedAt         string            `json:"updated_at,omitempty"`
+	AutoApply         bool              `json:"auto_apply"`
+	Locked            bool              `json:"locked"`
+	WorkingDirectory  string            `json:"working_directory,omitempty"`
+	TerraformWorking  bool              `json:"terraformWorking"`
+	VCSRepo           *TFEVCSRepo       `json:"vcsRepo,omitempty"`
+	Variables         map[string]string `json:"variables,omitempty"`
+	ExecutionMode     string            `json:"execution_mode,omitempty"`
+	WorkspaceType     string            `json:"workspace_type,omitempty"`
+	VCSConnection     *TFEVCSConnection `json:"vcs_connection,omitempty"`
 }
 
 // TFEVCSRepo represents VCS repository information
@@ -44,25 +49,21 @@ type TFEVCSRepo struct {
 	IngressSubmodules bool   `json:"ingressSubmodules"`
 }
 
+// TFEVCSConnection represents VCS connection information
+type TFEVCSConnection struct {
+	Repository       string `json:"repository"`
+	Branch           string `json:"branch"`
+	WorkingDirectory string `json:"working_directory"`
+	WebhookURL       string `json:"webhook_url"`
+}
+
 // TFERun represents a TFE run
 type TFERun struct {
-	ID               string `json:"id"`
-	WorkspaceID      string `json:"workspaceId"`
-	WorkspaceName    string `json:"workspaceName"`
-	Status           string `json:"status"` // pending, planning, planned, applying, applied, discarded, errored, canceled
-	CreatedAt        string `json:"createdAt"`
-	Message          string `json:"message,omitempty"`
-	Source           string `json:"source"` // manual, vcs, api
-	TerraformVersion string `json:"terraformVersion,omitempty"`
-	HasChanges       bool   `json:"hasChanges"`
-	IsDestroy        bool   `json:"isDestroy"`
-	IsConfirmable    bool   `json:"isConfirmable"`
-	Actions          struct {
-		IsConfirmable bool `json:"isConfirmable"`
-		IsCancelable  bool `json:"isCancelable"`
-		IsDiscardable bool `json:"isDiscardable"`
-	} `json:"actions"`
-	CreatedBy string `json:"createdBy,omitempty"`
+	ID        string `json:"id"`
+	Status    string `json:"status"` // pending, planning, planned, applying, applied, discarded, errored, canceled, planned_and_finished
+	CreatedAt string `json:"created_at"`
+	Message   string `json:"message,omitempty"`
+	Source    string `json:"source"` // manual, vcs, api, tfe-ui, terraform+cloud, tfe-api
 	URL       string `json:"url,omitempty"`
 }
 
@@ -128,10 +129,10 @@ func (a *App) GetTFEWorkspaces(config TFEConfig) ([]TFEWorkspace, error) {
 	// Parse the JSON output which is an array of workspace names
 	var workspaceNames []string
 	if err := json.Unmarshal(output, &workspaceNames); err != nil {
-		return nil, fmt.Errorf("failed to parse TFE workspaces response: %w", err)
+		return nil, fmt.Errorf("failed to parse TFE workspaces response: %w - raw output: %s", err, string(output))
 	}
 	
-	// Convert workspace names to TFEWorkspace objects
+	// Convert workspace names to TFEWorkspace objects (basic info only for performance)
 	var workspaces []TFEWorkspace
 	for _, name := range workspaceNames {
 		workspace := TFEWorkspace{
@@ -139,10 +140,9 @@ func (a *App) GetTFEWorkspaces(config TFEConfig) ([]TFEWorkspace, error) {
 			Name:         name,
 			Organization: config.Organization,
 			Status:       "active", // Default status
-			// Don't extract fake tags - TFE has real tags but we can't get them from the list command
-			Environment: extractEnvironmentFromName(name),
-			Owner:       extractOwnerFromName(name),
-			Tags:        []string{}, // Empty tags since we can't get real ones from the list command
+			Environment:  extractEnvironmentFromName(name),
+			Owner:        extractOwnerFromName(name),
+			Tags:         []string{}, // Empty tags since we can't get real ones from the list command
 		}
 		workspaces = append(workspaces, workspace)
 	}
@@ -243,15 +243,39 @@ func (a *App) GetTFEWorkspacesByTag(config TFEConfig, tag string, not bool) ([]T
 		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
 	)
 	
+	
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list TFE workspaces by tag: %w - %s", err, string(output))
 	}
 	
-	var workspaces []TFEWorkspace
-	if err := json.Unmarshal(output, &workspaces); err != nil {
-		return nil, fmt.Errorf("failed to parse TFE workspaces response: %w", err)
+	
+	// Check if output is empty
+	if len(output) == 0 {
+		return []TFEWorkspace{}, nil
 	}
+	
+	// Parse the JSON output which is an array of workspace names
+	var workspaceNames []string
+	if err := json.Unmarshal(output, &workspaceNames); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE workspaces response: %w - raw output: %s", err, string(output))
+	}
+	
+	// Convert workspace names to TFEWorkspace objects (basic info only for performance)
+	var workspaces []TFEWorkspace
+	for _, name := range workspaceNames {
+		workspace := TFEWorkspace{
+			ID:           name, // Use name as ID for now
+			Name:         name,
+			Organization: config.Organization,
+			Status:       "active", // Default status
+			Environment:  extractEnvironmentFromName(name),
+			Owner:        extractOwnerFromName(name),
+			Tags:         []string{}, // Empty tags since we can't get real ones from the list command
+		}
+		workspaces = append(workspaces, workspace)
+	}
+	
 	
 	return workspaces, nil
 }
@@ -309,11 +333,72 @@ func (a *App) ExecuteTFEPlan(config TFEConfig, execution TFEPlanExecution) ([]TF
 	return results, nil
 }
 
-// GetTFERuns retrieves TFE runs (currently not supported by yak CLI)
+// GetTFERuns retrieves TFE runs for a specific workspace
 func (a *App) GetTFERuns(config TFEConfig, workspaceID string) ([]TFERun, error) {
-	// Note: The yak tfe run command doesn't have a list subcommand
-	// For now, return empty array until the yak CLI supports this
-	return []TFERun{}, nil
+	// Build yak command
+	args := []string{"tfe", "run", "list", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Add workspace filter
+	args = append(args, "--workspace", workspaceID)
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list TFE runs: %w - %s", err, string(output))
+	}
+	
+	var runs []TFERun
+	if err := json.Unmarshal(output, &runs); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE runs response: %w", err)
+	}
+	
+	return runs, nil
+}
+
+// GetTFERunLogs retrieves logs for a specific TFE run
+func (a *App) GetTFERunLogs(config TFEConfig, runID string) (string, error) {
+	// Build yak command
+	args := []string{"tfe", "run", "logs", "--run-id", runID, "--plain-text"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get TFE run logs: %w - %s", err, string(output))
+	}
+	
+	return string(output), nil
 }
 
 // LockTFEWorkspace locks a TFE workspace
@@ -606,4 +691,234 @@ func (a *App) SetTFEConfig(config TFEConfig) error {
 	// Note: In a real application, you might want to store this more securely
 	// For now, we'll just return nil as the config is passed from the frontend
 	return nil
+}
+
+// TFEVariable represents a TFE variable
+type TFEVariable struct {
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Category    string `json:"category"` // terraform or env
+	HCL         bool   `json:"hcl"`
+	Sensitive   bool   `json:"sensitive"`
+	Source      string `json:"source"` // workspace or variable-set
+	Description string `json:"description"`
+	ID          string `json:"id"`
+}
+
+// TFEVariableSet represents a TFE variable set
+type TFEVariableSet struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Description    string `json:"description,omitempty"`
+	Global         bool   `json:"global"`
+	Organization   string `json:"organization"`
+	WorkspaceCount int    `json:"workspace_count"`
+}
+
+// TFEVariableSetDetails represents detailed information about a TFE variable set
+type TFEVariableSetDetails struct {
+	ID          string                         `json:"id"`
+	Name        string                         `json:"name"`
+	Description string                         `json:"description,omitempty"`
+	Global      bool                           `json:"global"`
+	Variables   []TFEVariable                  `json:"variables"`
+	Workspaces  []TFEVariableSetWorkspace      `json:"workspaces"`
+}
+
+// TFEVariableSetWorkspace represents a workspace associated with a variable set
+type TFEVariableSetWorkspace struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetTFEWorkspaceVariables retrieves variables for a specific workspace
+func (a *App) GetTFEWorkspaceVariables(config TFEConfig, workspaceId string, includeSets bool) ([]TFEVariable, error) {
+	// Build yak command
+	args := []string{"tfe", "variable", "list", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Add workspace filter
+	args = append(args, "--workspace", workspaceId)
+	
+	// Add include-sets flag if specified
+	if includeSets {
+		args = append(args, "--include-sets")
+	}
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list TFE workspace variables: %w - %s", err, string(output))
+	}
+	
+	var variables []TFEVariable
+	if err := json.Unmarshal(output, &variables); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE workspace variables response: %w", err)
+	}
+	
+	return variables, nil
+}
+
+// GetTFEVariableSetVariables retrieves variables for a specific variable set
+func (a *App) GetTFEVariableSetVariables(config TFEConfig, variableSetName string) ([]TFEVariable, error) {
+	// Build yak command for variable-set show
+	args := []string{"tfe", "variable-set", "show", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Add variable-set filter (use name instead of ID)
+	args = append(args, "--variable-set", variableSetName)
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to show TFE variable set: %w - %s", err, string(output))
+	}
+	
+	var variableSetDetails TFEVariableSetDetails
+	if err := json.Unmarshal(output, &variableSetDetails); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE variable set details response: %w", err)
+	}
+	
+	return variableSetDetails.Variables, nil
+}
+
+// GetTFEVariableSets retrieves all variable sets for the organization
+func (a *App) GetTFEVariableSets(config TFEConfig) ([]TFEVariableSet, error) {
+	// Build yak command
+	args := []string{"tfe", "variable-set", "list", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list TFE variable sets: %w - %s", err, string(output))
+	}
+	
+	var variableSets []TFEVariableSet
+	if err := json.Unmarshal(output, &variableSets); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE variable sets response: %w", err)
+	}
+	
+	return variableSets, nil
+}
+
+// GetTFEWorkspaceDetails retrieves detailed information about a specific workspace
+func (a *App) GetTFEWorkspaceDetails(config TFEConfig, workspaceName string) (*TFEWorkspace, error) {
+	// Build yak command
+	args := []string{"tfe", "workspace", "show", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Add workspace name
+	args = append(args, "--workspace", workspaceName)
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TFE workspace details: %w - %s", err, string(output))
+	}
+	
+	var workspace TFEWorkspace
+	if err := json.Unmarshal(output, &workspace); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE workspace details response: %w", err)
+	}
+	
+	return &workspace, nil
+}
+
+// GetTFEVariableSetDetails retrieves detailed information about a specific variable set
+func (a *App) GetTFEVariableSetDetails(config TFEConfig, variableSetName string) (*TFEVariableSetDetails, error) {
+	// Build yak command for variable-set show
+	args := []string{"tfe", "variable-set", "show", "--json"}
+	
+	// Add organization if specified
+	if config.Organization != "" {
+		args = append(args, "--organization", config.Organization)
+	}
+	
+	// Add variable-set filter (use name instead of ID)
+	args = append(args, "--variable-set", variableSetName)
+	
+	// Execute command
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	cmd := exec.CommandContext(ctx, findYakExecutable(), args...)
+	
+	// Set environment variables for TFE authentication
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("TFE_ENDPOINT=%s", config.Endpoint),
+		fmt.Sprintf("TFE_TOKEN=%s", config.Token),
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to show TFE variable set details: %w - %s", err, string(output))
+	}
+	
+	var variableSetDetails TFEVariableSetDetails
+	if err := json.Unmarshal(output, &variableSetDetails); err != nil {
+		return nil, fmt.Errorf("failed to parse TFE variable set details response: %w", err)
+	}
+	
+	return &variableSetDetails, nil
 }

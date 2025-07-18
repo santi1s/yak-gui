@@ -130,12 +130,36 @@ export function GetTFEConfig() {
   return window['go']['main']['App']['GetTFEConfig']();
 }
 
+export function GetTFERunLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetTFERunLogs'](arg1, arg2);
+}
+
 export function GetTFERuns(arg1, arg2) {
   return window['go']['main']['App']['GetTFERuns'](arg1, arg2);
 }
 
+export function GetTFEVariableSetDetails(arg1, arg2) {
+  return window['go']['main']['App']['GetTFEVariableSetDetails'](arg1, arg2);
+}
+
+export function GetTFEVariableSetVariables(arg1, arg2) {
+  return window['go']['main']['App']['GetTFEVariableSetVariables'](arg1, arg2);
+}
+
+export function GetTFEVariableSets(arg1) {
+  return window['go']['main']['App']['GetTFEVariableSets'](arg1);
+}
+
 export function GetTFEVersions(arg1) {
   return window['go']['main']['App']['GetTFEVersions'](arg1);
+}
+
+export function GetTFEWorkspaceDetails(arg1, arg2) {
+  return window['go']['main']['App']['GetTFEWorkspaceDetails'](arg1, arg2);
+}
+
+export function GetTFEWorkspaceVariables(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetTFEWorkspaceVariables'](arg1, arg2, arg3);
 }
 
 export function GetTFEWorkspaces(arg1) {

@@ -146,12 +146,19 @@ declare global {
           GetTFEWorkspacesByTag: (config: any, tag: string, not: boolean) => Promise<any[]>;
           ExecuteTFEPlan: (config: any, execution: any) => Promise<any[]>;
           GetTFERuns: (config: any, workspaceID: string) => Promise<any[]>;
+          GetTFERunLogs: (config: any, runID: string) => Promise<string>;
           LockTFEWorkspace: (config: any, workspaceNames: string[], checkStatus: boolean) => Promise<void>;
           UnlockTFEWorkspace: (config: any, workspaceNames: string[], force: boolean) => Promise<void>;
           SetTFEWorkspaceVersion: (config: any, workspaceNames: string[], version: string) => Promise<void>;
           DiscardTFERuns: (config: any, ageHours: number, discardPending: boolean, dryRun: boolean, allWorkspaces: boolean) => Promise<void>;
           GetTFEVersions: (config: any) => Promise<any[]>;
           CheckTFEDeprecatedVersions: (config: any, versionFile: string, teamsFile: string, sendEmail: boolean) => Promise<any>;
+          // TFE Variable functions
+          GetTFEWorkspaceVariables: (config: any, workspaceId: string, includeSets: boolean) => Promise<any[]>;
+          GetTFEVariableSetVariables: (config: any, variableSetName: string) => Promise<any[]>;
+          GetTFEVariableSets: (config: any) => Promise<any[]>;
+          GetTFEWorkspaceDetails: (config: any, workspaceName: string) => Promise<any>;
+          GetTFEVariableSetDetails: (config: any, variableSetName: string) => Promise<any>;
           // Window control functions
           MaximizeWindow: () => void;
           UnmaximizeWindow: () => void;

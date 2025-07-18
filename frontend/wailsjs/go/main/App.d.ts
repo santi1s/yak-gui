@@ -66,9 +66,21 @@ export function GetShellPATH():Promise<string>;
 
 export function GetTFEConfig():Promise<main.TFEConfig>;
 
+export function GetTFERunLogs(arg1:main.TFEConfig,arg2:string):Promise<string>;
+
 export function GetTFERuns(arg1:main.TFEConfig,arg2:string):Promise<Array<main.TFERun>>;
 
+export function GetTFEVariableSetDetails(arg1:main.TFEConfig,arg2:string):Promise<main.TFEVariableSetDetails>;
+
+export function GetTFEVariableSetVariables(arg1:main.TFEConfig,arg2:string):Promise<Array<main.TFEVariable>>;
+
+export function GetTFEVariableSets(arg1:main.TFEConfig):Promise<Array<main.TFEVariableSet>>;
+
 export function GetTFEVersions(arg1:main.TFEConfig):Promise<Array<main.TFEVersionInfo>>;
+
+export function GetTFEWorkspaceDetails(arg1:main.TFEConfig,arg2:string):Promise<main.TFEWorkspace>;
+
+export function GetTFEWorkspaceVariables(arg1:main.TFEConfig,arg2:string,arg3:boolean):Promise<Array<main.TFEVariable>>;
 
 export function GetTFEWorkspaces(arg1:main.TFEConfig):Promise<Array<main.TFEWorkspace>>;
 

@@ -7,12 +7,22 @@ import (
 
 // findYakExecutable searches for yak executable in common paths
 func findYakExecutable() string {
-	// Common paths where yak might be installed
+	// Check for local development version first (updated yak with --json support)
+	localYakPath := "/Users/sergiosantiago/projects/doctolib/yak_fix/yak"
+	if _, err := exec.LookPath(localYakPath); err == nil {
+		return localYakPath
+	}
+	
+	// Check PATH next
+	if _, err := exec.LookPath("yak"); err == nil {
+		return "yak"
+	}
+	
+	// Fallback to common hardcoded paths where yak might be installed
 	paths := []string{
 		"/opt/homebrew/bin/yak",    // Homebrew on Apple Silicon
 		"/usr/local/bin/yak",       // Homebrew on Intel Macs
 		"/usr/bin/yak",             // System installation
-		"yak",                      // Try PATH first
 	}
 	
 	for _, path := range paths {
@@ -20,7 +30,7 @@ func findYakExecutable() string {
 			return path
 		}
 	}
-	return "yak" // fallback to PATH
+	return "yak" // final fallback to PATH
 }
 
 // Helper functions to safely extract values from map

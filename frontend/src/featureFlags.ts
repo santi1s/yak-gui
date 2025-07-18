@@ -23,8 +23,8 @@ export const defaultFeatureFlags: FeatureFlags = {
   showSecretsTab: true,
   showCertificatesTab: true,
   
-  // New experimental tabs - disabled and not configurable
-  showTFETab: false,
+  // New experimental tabs - enabled for enhanced TFE functionality
+  showTFETab: true,
   
   // Feature flags for functionality
   enableAutoRefresh: true,
@@ -67,7 +67,7 @@ export const getFeatureFlags = (): FeatureFlags => {
     ...envOverrides,
     // Force certain tabs to their intended state regardless of overrides
     showEnvironmentTab: true,  // Always enabled
-    showTFETab: false,         // Always disabled
+    showTFETab: true,          // Enabled for enhanced TFE functionality
   };
 };
 

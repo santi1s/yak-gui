@@ -540,19 +540,10 @@ export namespace main {
 	}
 	export class TFERun {
 	    id: string;
-	    workspaceId: string;
-	    workspaceName: string;
 	    status: string;
-	    createdAt: string;
+	    created_at: string;
 	    message?: string;
 	    source: string;
-	    terraformVersion?: string;
-	    hasChanges: boolean;
-	    isDestroy: boolean;
-	    isConfirmable: boolean;
-	    // Go type: struct { IsConfirmable bool "json:\"isConfirmable\""; IsCancelable bool "json:\"isCancelable\""; IsDiscardable bool "json:\"isDiscardable\"" }
-	    actions: any;
-	    createdBy?: string;
 	    url?: string;
 	
 	    static createFrom(source: any = {}) {
@@ -562,19 +553,129 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
-	        this.workspaceId = source["workspaceId"];
-	        this.workspaceName = source["workspaceName"];
 	        this.status = source["status"];
-	        this.createdAt = source["createdAt"];
+	        this.created_at = source["created_at"];
 	        this.message = source["message"];
 	        this.source = source["source"];
-	        this.terraformVersion = source["terraformVersion"];
-	        this.hasChanges = source["hasChanges"];
-	        this.isDestroy = source["isDestroy"];
-	        this.isConfirmable = source["isConfirmable"];
-	        this.actions = this.convertValues(source["actions"], Object);
-	        this.createdBy = source["createdBy"];
 	        this.url = source["url"];
+	    }
+	}
+	export class TFEVCSConnection {
+	    repository: string;
+	    branch: string;
+	    working_directory: string;
+	    webhook_url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVCSConnection(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.repository = source["repository"];
+	        this.branch = source["branch"];
+	        this.working_directory = source["working_directory"];
+	        this.webhook_url = source["webhook_url"];
+	    }
+	}
+	export class TFEVCSRepo {
+	    identifier: string;
+	    branch: string;
+	    ingressSubmodules: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVCSRepo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.identifier = source["identifier"];
+	        this.branch = source["branch"];
+	        this.ingressSubmodules = source["ingressSubmodules"];
+	    }
+	}
+	export class TFEVariable {
+	    key: string;
+	    value: string;
+	    category: string;
+	    hcl: boolean;
+	    sensitive: boolean;
+	    source: string;
+	    description: string;
+	    id: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVariable(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.value = source["value"];
+	        this.category = source["category"];
+	        this.hcl = source["hcl"];
+	        this.sensitive = source["sensitive"];
+	        this.source = source["source"];
+	        this.description = source["description"];
+	        this.id = source["id"];
+	    }
+	}
+	export class TFEVariableSet {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    global: boolean;
+	    organization: string;
+	    workspace_count: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVariableSet(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.global = source["global"];
+	        this.organization = source["organization"];
+	        this.workspace_count = source["workspace_count"];
+	    }
+	}
+	export class TFEVariableSetWorkspace {
+	    id: string;
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVariableSetWorkspace(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	    }
+	}
+	export class TFEVariableSetDetails {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    global: boolean;
+	    variables: TFEVariable[];
+	    workspaces: TFEVariableSetWorkspace[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TFEVariableSetDetails(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.global = source["global"];
+	        this.variables = this.convertValues(source["variables"], TFEVariable);
+	        this.workspaces = this.convertValues(source["workspaces"], TFEVariableSetWorkspace);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -595,22 +696,7 @@ export namespace main {
 		    return a;
 		}
 	}
-	export class TFEVCSRepo {
-	    identifier: string;
-	    branch: string;
-	    ingressSubmodules: boolean;
 	
-	    static createFrom(source: any = {}) {
-	        return new TFEVCSRepo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.identifier = source["identifier"];
-	        this.branch = source["branch"];
-	        this.ingressSubmodules = source["ingressSubmodules"];
-	    }
-	}
 	export class TFEVersionInfo {
 	    version: string;
 	    status: string;
@@ -638,18 +724,23 @@ export namespace main {
 	    name: string;
 	    description?: string;
 	    environment?: string;
-	    terraformVersion?: string;
+	    terraform_version?: string;
 	    status: string;
 	    lastRun?: string;
 	    owner?: string;
-	    tags?: string[];
+	    tag_names?: string[];
 	    organization: string;
-	    createdAt?: string;
-	    updatedAt?: string;
-	    autoApply: boolean;
+	    created_at?: string;
+	    updated_at?: string;
+	    auto_apply: boolean;
+	    locked: boolean;
+	    working_directory?: string;
 	    terraformWorking: boolean;
 	    vcsRepo?: TFEVCSRepo;
 	    variables?: Record<string, string>;
+	    execution_mode?: string;
+	    workspace_type?: string;
+	    vcs_connection?: TFEVCSConnection;
 	
 	    static createFrom(source: any = {}) {
 	        return new TFEWorkspace(source);
@@ -661,18 +752,23 @@ export namespace main {
 	        this.name = source["name"];
 	        this.description = source["description"];
 	        this.environment = source["environment"];
-	        this.terraformVersion = source["terraformVersion"];
+	        this.terraform_version = source["terraform_version"];
 	        this.status = source["status"];
 	        this.lastRun = source["lastRun"];
 	        this.owner = source["owner"];
-	        this.tags = source["tags"];
+	        this.tag_names = source["tag_names"];
 	        this.organization = source["organization"];
-	        this.createdAt = source["createdAt"];
-	        this.updatedAt = source["updatedAt"];
-	        this.autoApply = source["autoApply"];
+	        this.created_at = source["created_at"];
+	        this.updated_at = source["updated_at"];
+	        this.auto_apply = source["auto_apply"];
+	        this.locked = source["locked"];
+	        this.working_directory = source["working_directory"];
 	        this.terraformWorking = source["terraformWorking"];
 	        this.vcsRepo = this.convertValues(source["vcsRepo"], TFEVCSRepo);
 	        this.variables = source["variables"];
+	        this.execution_mode = source["execution_mode"];
+	        this.workspace_type = source["workspace_type"];
+	        this.vcs_connection = this.convertValues(source["vcs_connection"], TFEVCSConnection);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
