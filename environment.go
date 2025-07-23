@@ -307,6 +307,7 @@ func (a *App) ImportShellEnvironment() error {
 		"TFINFRA_REPOSITORY_PATH",
 		"HOME",
 		"GANDI_TOKEN",
+		"CLOUDFLARE_API_TOKEN",
 	}
 	
 	for _, varName := range importantVars {
@@ -329,6 +330,8 @@ func (a *App) GetEnvironmentVariables() map[string]string {
 		"PATH":                     os.Getenv("PATH"),
 		"TFINFRA_REPOSITORY_PATH":  os.Getenv("TFINFRA_REPOSITORY_PATH"),
 		"GANDI_TOKEN":              maskSensitiveValue(os.Getenv("GANDI_TOKEN")),
+		"TFE_TOKEN":                maskSensitiveValue(os.Getenv("TFE_TOKEN")),
+		"CLOUDFLARE_API_TOKEN":     maskSensitiveValue(os.Getenv("CLOUDFLARE_API_TOKEN")),
 	}
 	
 	

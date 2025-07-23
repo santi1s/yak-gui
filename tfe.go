@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -601,7 +603,7 @@ func (a *App) GetTFEVersions(config TFEConfig) ([]TFEVersionInfo, error) {
 }
 
 // CheckTFEDeprecatedVersions checks for workspaces using deprecated Terraform versions
-func (a *App) CheckTFEDeprecatedVersions(config TFEConfig, versionFile string, teamsFile string, sendEmail bool) (map[string]interface{}, error) {
+func (a *App) CheckTFEDeprecatedVersions(config TFEConfig, sendEmail bool) (map[string]interface{}, error) {
 	// Build yak command
 	args := []string{"tfe", "check-versions"}
 	
@@ -610,9 +612,19 @@ func (a *App) CheckTFEDeprecatedVersions(config TFEConfig, versionFile string, t
 		args = append(args, "--organization", config.Organization)
 	}
 	
+	// Get TFINFRA_REPOSITORY_PATH from environment
+	tfInfraPath := os.Getenv("TFINFRA_REPOSITORY_PATH")
+	if tfInfraPath == "" {
+		return nil, fmt.Errorf("TFINFRA_REPOSITORY_PATH environment variable is not set")
+	}
+	
+	// Construct file paths
+	versionsFilePath := fmt.Sprintf("%s/configs/terraform_versions.yml", tfInfraPath)
+	teamsFilePath := fmt.Sprintf("%s/configs/terraform_teams.yml", tfInfraPath)
+	
 	// Add required files
-	args = append(args, "--file", versionFile)
-	args = append(args, "--teams", teamsFile)
+	args = append(args, "--file", versionsFilePath)
+	args = append(args, "--teams", teamsFilePath)
 	
 	// Add send email flag
 	if sendEmail {
@@ -639,12 +651,12 @@ func (a *App) CheckTFEDeprecatedVersions(config TFEConfig, versionFile string, t
 		return nil, fmt.Errorf("failed to check TFE deprecated versions: %w - %s", err, string(output))
 	}
 	
-	var result map[string]interface{}
+	var result interface{}
 	if err := json.Unmarshal(output, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse TFE deprecated versions response: %w", err)
 	}
 	
-	return result, nil
+	return map[string]interface{}{"deprecated_workspaces": result}, nil
 }
 
 // GetTFEConfig retrieves TFE configuration from environment variables
@@ -666,7 +678,7 @@ func (a *App) GetTFEConfig() (TFEConfig, error) {
 		config.Organization = org
 	}
 	
-	if token := env["TFE_TOKEN"]; token != "" {
+	if token := os.Getenv("TFE_TOKEN"); token != "" {
 		config.Token = token
 	}
 	
@@ -688,8 +700,17 @@ func (a *App) GetTFEConfig() (TFEConfig, error) {
 
 // SetTFEConfig sets TFE configuration in environment variables
 func (a *App) SetTFEConfig(config TFEConfig) error {
-	// Note: In a real application, you might want to store this more securely
-	// For now, we'll just return nil as the config is passed from the frontend
+	// Set environment variables to persist the configuration
+	if config.Endpoint != "" {
+		os.Setenv("TFE_ENDPOINT", config.Endpoint)
+	}
+	if config.Organization != "" {
+		os.Setenv("TFE_ORGANIZATION", config.Organization)
+	}
+	if config.Token != "" {
+		os.Setenv("TFE_TOKEN", config.Token)
+	}
+	
 	return nil
 }
 
@@ -921,4 +942,90 @@ func (a *App) GetTFEVariableSetDetails(config TFEConfig, variableSetName string)
 	}
 	
 	return &variableSetDetails, nil
+}
+
+// GetTFEOrganizations retrieves all available organizations via TFE API
+func (a *App) GetTFEOrganizations(config TFEConfig) ([]string, error) {
+	// If no token provided, try to get it from environment
+	if config.Token == "" {
+		envConfig, err := a.GetTFEConfig()
+		if err == nil && envConfig.Token != "" {
+			config.Token = envConfig.Token
+		}
+	}
+	
+	// Debug: Check if we have a token
+	if config.Token == "" {
+		return nil, fmt.Errorf("No TFE token available. Please set TFE_TOKEN environment variable or provide token in config")
+	}
+	
+	// Debug: Log token length (not the actual token for security)
+	fmt.Printf("Using TFE token with length: %d\n", len(config.Token))
+	// Construct API URL
+	endpoint := config.Endpoint
+	if !strings.HasPrefix(endpoint, "http") {
+		endpoint = "https://" + endpoint
+	}
+	apiURL := fmt.Sprintf("%s/api/v2/organizations", endpoint)
+	
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	
+	// Create request
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return []string{"doctolib"}, nil
+	}
+	
+	// Add authentication header
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
+	req.Header.Set("Content-Type", "application/vnd.api+json")
+	
+	// Make the request
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read response body: %v", err)
+	}
+	
+	// Check if request was successful
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+	
+	// Parse JSON response  
+	var apiResponse struct {
+		Data []struct {
+			Attributes struct {
+				Name string `json:"name"`
+			} `json:"attributes"`
+		} `json:"data"`
+	}
+	
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return nil, fmt.Errorf("Failed to parse JSON response: %v - Response: %s", err, string(body))
+	}
+	
+	// Extract organization names
+	var organizations []string
+	fmt.Printf("Found %d organizations in response\n", len(apiResponse.Data))
+	for _, org := range apiResponse.Data {
+		fmt.Printf("Organization name: %s\n", org.Attributes.Name)
+		organizations = append(organizations, org.Attributes.Name)
+	}
+	
+	// If no organizations returned, provide the default one
+	if len(organizations) == 0 {
+		organizations = []string{"doctolib"}
+	}
+	
+	return organizations, nil
 }

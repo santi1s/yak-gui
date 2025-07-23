@@ -170,7 +170,333 @@ export namespace main {
 	        this.output = source["output"];
 	    }
 	}
+	export class CloudflareAPIConfig {
+	    token: string;
+	    accountName: string;
 	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareAPIConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.token = source["token"];
+	        this.accountName = source["accountName"];
+	    }
+	}
+	export class CloudflareAccount {
+	    id: string;
+	    name: string;
+	    created_on: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareAccount(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.created_on = source["created_on"];
+	    }
+	}
+	
+	export class CloudflareDNSRecord {
+	    id: string;
+	    type: string;
+	    name: string;
+	    content: string;
+	    ttl: number;
+	    proxied?: boolean;
+	    zone_id: string;
+	    zone_name: string;
+	    created_on?: string;
+	    modified_on?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareDNSRecord(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.type = source["type"];
+	        this.name = source["name"];
+	        this.content = source["content"];
+	        this.ttl = source["ttl"];
+	        this.proxied = source["proxied"];
+	        this.zone_id = source["zone_id"];
+	        this.zone_name = source["zone_name"];
+	        this.created_on = source["created_on"];
+	        this.modified_on = source["modified_on"];
+	    }
+	}
+	export class CloudflareHost {
+	    Name: string;
+	    Website: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareHost(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Name = source["Name"];
+	        this.Website = source["Website"];
+	    }
+	}
+	export class CloudflareLoadBalancer {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    enabled: boolean;
+	    ttl: number;
+	    proxied: boolean;
+	    default_pools: string[];
+	    fallback_pool?: string;
+	    session_affinity: string;
+	    steering_policy: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareLoadBalancer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.enabled = source["enabled"];
+	        this.ttl = source["ttl"];
+	        this.proxied = source["proxied"];
+	        this.default_pools = source["default_pools"];
+	        this.fallback_pool = source["fallback_pool"];
+	        this.session_affinity = source["session_affinity"];
+	        this.steering_policy = source["steering_policy"];
+	    }
+	}
+	export class CloudflareMeta {
+	    page_rule_quota: number;
+	    wildcard_proxiable: boolean;
+	    phishing_detected: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareMeta(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.page_rule_quota = source["page_rule_quota"];
+	        this.wildcard_proxiable = source["wildcard_proxiable"];
+	        this.phishing_detected = source["phishing_detected"];
+	    }
+	}
+	export class CloudflareOrigin {
+	    name: string;
+	    address: string;
+	    enabled: boolean;
+	    weight?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareOrigin(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.address = source["address"];
+	        this.enabled = source["enabled"];
+	        this.weight = source["weight"];
+	    }
+	}
+	export class CloudflareOwner {
+	    id: string;
+	    email: string;
+	    name: string;
+	    type: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareOwner(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.email = source["email"];
+	        this.name = source["name"];
+	        this.type = source["type"];
+	    }
+	}
+	export class CloudflarePlan {
+	    id: string;
+	    name: string;
+	    currency: string;
+	    legacy_id: string;
+	    is_subscribed: boolean;
+	    can_subscribe: boolean;
+	    legacy_discount: boolean;
+	    externally_managed: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflarePlan(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.currency = source["currency"];
+	        this.legacy_id = source["legacy_id"];
+	        this.is_subscribed = source["is_subscribed"];
+	        this.can_subscribe = source["can_subscribe"];
+	        this.legacy_discount = source["legacy_discount"];
+	        this.externally_managed = source["externally_managed"];
+	    }
+	}
+	export class CloudflarePool {
+	    id: string;
+	    name: string;
+	    description?: string;
+	    enabled: boolean;
+	    healthy: boolean;
+	    minimum_origins: number;
+	    origins: CloudflareOrigin[];
+	    monitor?: string;
+	    notification_email?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflarePool(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	        this.enabled = source["enabled"];
+	        this.healthy = source["healthy"];
+	        this.minimum_origins = source["minimum_origins"];
+	        this.origins = this.convertValues(source["origins"], CloudflareOrigin);
+	        this.monitor = source["monitor"];
+	        this.notification_email = source["notification_email"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class CloudflareWAFRule {
+	    id: string;
+	    description: string;
+	    expression: string;
+	    action: string;
+	    enabled: boolean;
+	    ref?: string;
+	    version?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareWAFRule(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.description = source["description"];
+	        this.expression = source["expression"];
+	        this.action = source["action"];
+	        this.enabled = source["enabled"];
+	        this.ref = source["ref"];
+	        this.version = source["version"];
+	    }
+	}
+	export class CloudflareZone {
+	    id: string;
+	    name: string;
+	    development_mode: number;
+	    original_name_servers?: string[];
+	    original_registrar?: string;
+	    original_dnshost?: string;
+	    created_on?: string;
+	    modified_on?: string;
+	    name_servers?: string[];
+	    owner?: CloudflareOwner;
+	    permissions?: string[];
+	    plan?: CloudflarePlan;
+	    plan_pending?: CloudflarePlan;
+	    status: string;
+	    paused: boolean;
+	    type: string;
+	    host?: CloudflareHost;
+	    vanity_name_servers?: string[];
+	    betas?: string[];
+	    deactivation_reason?: string;
+	    meta?: CloudflareMeta;
+	    account?: CloudflareAccount;
+	    verification_key?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CloudflareZone(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.development_mode = source["development_mode"];
+	        this.original_name_servers = source["original_name_servers"];
+	        this.original_registrar = source["original_registrar"];
+	        this.original_dnshost = source["original_dnshost"];
+	        this.created_on = source["created_on"];
+	        this.modified_on = source["modified_on"];
+	        this.name_servers = source["name_servers"];
+	        this.owner = this.convertValues(source["owner"], CloudflareOwner);
+	        this.permissions = source["permissions"];
+	        this.plan = this.convertValues(source["plan"], CloudflarePlan);
+	        this.plan_pending = this.convertValues(source["plan_pending"], CloudflarePlan);
+	        this.status = source["status"];
+	        this.paused = source["paused"];
+	        this.type = source["type"];
+	        this.host = this.convertValues(source["host"], CloudflareHost);
+	        this.vanity_name_servers = source["vanity_name_servers"];
+	        this.betas = source["betas"];
+	        this.deactivation_reason = source["deactivation_reason"];
+	        this.meta = this.convertValues(source["meta"], CloudflareMeta);
+	        this.account = this.convertValues(source["account"], CloudflareAccount);
+	        this.verification_key = source["verification_key"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ClusterConfig {
 	    Endpoint: string;
 	

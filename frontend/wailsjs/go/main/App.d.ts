@@ -4,15 +4,21 @@ import {main} from '../models';
 
 export function AbortRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
+export function CheckArgoRolloutsExtension():Promise<void>;
+
 export function CheckGandiToken():Promise<main.CertificateOperation>;
 
-export function CheckTFEDeprecatedVersions(arg1:main.TFEConfig,arg2:string,arg3:string,arg4:boolean):Promise<Record<string, any>>;
+export function CheckTFEDeprecatedVersions(arg1:main.TFEConfig,arg2:boolean):Promise<Record<string, any>>;
+
+export function CreateCloudflareDNSRecord(arg1:main.CloudflareAPIConfig,arg2:string,arg3:Record<string, any>):Promise<void>;
 
 export function CreateJWTClient(arg1:main.JWTClientConfig):Promise<void>;
 
 export function CreateJWTServer(arg1:main.JWTServerConfig):Promise<void>;
 
 export function CreateSecret(arg1:main.SecretConfig,arg2:string,arg3:string,arg4:string,arg5:string,arg6:Record<string, string>):Promise<void>;
+
+export function DeleteCloudflareDNSRecord(arg1:main.CloudflareAPIConfig,arg2:string,arg3:string):Promise<void>;
 
 export function DeleteEnvironmentProfile(arg1:string):Promise<void>;
 
@@ -36,6 +42,18 @@ export function GetArgoCDServerFromProfile():Promise<string>;
 
 export function GetCertificateConfig():Promise<Array<main.Certificate>>;
 
+export function GetCloudflareConfig():Promise<main.CloudflareAPIConfig>;
+
+export function GetCloudflareDNSRecords(arg1:main.CloudflareAPIConfig,arg2:string):Promise<Array<main.CloudflareDNSRecord>>;
+
+export function GetCloudflareLoadBalancers(arg1:main.CloudflareAPIConfig,arg2:string):Promise<Array<main.CloudflareLoadBalancer>>;
+
+export function GetCloudflarePools(arg1:main.CloudflareAPIConfig):Promise<Array<main.CloudflarePool>>;
+
+export function GetCloudflareWAFRules(arg1:main.CloudflareAPIConfig,arg2:string):Promise<Array<main.CloudflareWAFRule>>;
+
+export function GetCloudflareZones(arg1:main.CloudflareAPIConfig):Promise<Array<main.CloudflareZone>>;
+
 export function GetCurrentAWSProfile():Promise<string>;
 
 export function GetEnvironmentProfiles():Promise<Array<main.EnvironmentProfile>>;
@@ -45,6 +63,8 @@ export function GetEnvironmentVariables():Promise<Record<string, string>>;
 export function GetGandiToken():Promise<string>;
 
 export function GetKubeconfig():Promise<string>;
+
+export function GetRolloutLiveStatus(arg1:main.KubernetesConfig,arg2:string):Promise<string>;
 
 export function GetRolloutStatus(arg1:main.KubernetesConfig,arg2:string):Promise<main.RolloutStatus>;
 
@@ -66,6 +86,8 @@ export function GetShellPATH():Promise<string>;
 
 export function GetTFEConfig():Promise<main.TFEConfig>;
 
+export function GetTFEOrganizations(arg1:main.TFEConfig):Promise<Array<string>>;
+
 export function GetTFERunLogs(arg1:main.TFEConfig,arg2:string):Promise<string>;
 
 export function GetTFERuns(arg1:main.TFEConfig,arg2:string):Promise<Array<main.TFERun>>;
@@ -85,6 +107,8 @@ export function GetTFEWorkspaceVariables(arg1:main.TFEConfig,arg2:string,arg3:bo
 export function GetTFEWorkspaces(arg1:main.TFEConfig):Promise<Array<main.TFEWorkspace>>;
 
 export function GetTFEWorkspacesByTag(arg1:main.TFEConfig,arg2:string,arg3:boolean):Promise<Array<main.TFEWorkspace>>;
+
+export function GetYakVersion():Promise<string>;
 
 export function Greet(arg1:string):Promise<string>;
 
@@ -116,6 +140,8 @@ export function RefreshCertificateSecret(arg1:string,arg2:string):Promise<main.C
 
 export function RenewCertificate(arg1:string,arg2:string):Promise<main.CertificateOperation>;
 
+export function ResolveHostname(arg1:string):Promise<string>;
+
 export function RestartRollout(arg1:main.KubernetesConfig,arg2:string):Promise<void>;
 
 export function SaveEnvironmentProfile(arg1:string):Promise<void>;
@@ -123,6 +149,8 @@ export function SaveEnvironmentProfile(arg1:string):Promise<void>;
 export function SendCertificateNotification(arg1:string,arg2:string,arg3:string):Promise<main.CertificateOperation>;
 
 export function SetAWSProfile(arg1:string):Promise<void>;
+
+export function SetCloudflareConfig(arg1:main.CloudflareAPIConfig):Promise<void>;
 
 export function SetGandiToken(arg1:string):Promise<void>;
 

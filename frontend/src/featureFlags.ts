@@ -7,6 +7,7 @@ export interface FeatureFlags {
   showSecretsTab: boolean;
   showCertificatesTab: boolean;
   showTFETab: boolean;
+  showCloudflareTab: boolean;
   
   // Experimental features
   enableAutoRefresh: boolean;
@@ -23,8 +24,9 @@ export const defaultFeatureFlags: FeatureFlags = {
   showSecretsTab: true,
   showCertificatesTab: true,
   
-  // New experimental tabs - enabled for enhanced TFE functionality
+  // New experimental tabs - enabled for enhanced functionality
   showTFETab: true,
+  showCloudflareTab: true,
   
   // Feature flags for functionality
   enableAutoRefresh: true,
@@ -68,6 +70,7 @@ export const getFeatureFlags = (): FeatureFlags => {
     // Force certain tabs to their intended state regardless of overrides
     showEnvironmentTab: true,  // Always enabled
     showTFETab: true,          // Enabled for enhanced TFE functionality
+    showCloudflareTab: true,   // Enabled for Cloudflare management
   };
 };
 

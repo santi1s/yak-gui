@@ -27,7 +27,8 @@ import {
   FastForwardOutlined,
   EyeOutlined,
   CopyOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  MonitorOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -250,6 +251,9 @@ const RolloutCard: React.FC<{
 }> = ({ rollout, config, onAction }) => {
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [liveStatusVisible, setLiveStatusVisible] = useState(false);
+  const [liveStatusData, setLiveStatusData] = useState<string>('');
+  const [liveStatusLoading, setLiveStatusLoading] = useState(false);
 
   const handleAction = async (action: string) => {
     setLoading(true);
@@ -283,6 +287,37 @@ const RolloutCard: React.FC<{
       message.error(`${action} failed: ${error}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLiveStatus = async () => {
+    setLiveStatusVisible(true);
+    setLiveStatusLoading(true);
+    setLiveStatusData('');
+    
+    try {
+      // Use the rollout's specific namespace, not the global config namespace
+      const rolloutConfig = {
+        ...config,
+        namespace: rollout.namespace || config.namespace
+      };
+      
+      const output = await window.go.main.App.GetRolloutLiveStatus(rolloutConfig, rollout.name);
+      setLiveStatusData(output);
+    } catch (error: any) {
+      if (error.message && error.message.includes('kubectl argo rollouts extension is not installed')) {
+        setLiveStatusData(`Error: kubectl argo rollouts extension is not installed.
+
+Please install it using:
+kubectl krew install argo-rollouts
+
+If you don't have krew installed, you can install it first:
+https://krew.sigs.k8s.io/docs/user-guide/setup/install/`);
+      } else {
+        setLiveStatusData(`Error: ${error.message || error}`);
+      }
+    } finally {
+      setLiveStatusLoading(false);
     }
   };
 
@@ -410,6 +445,17 @@ const RolloutCard: React.FC<{
                 Restart
               </Button>
             </Tooltip>
+            <Tooltip title="View live rollout status from kubectl argo rollouts">
+              <Button
+                size="small"
+                onClick={handleLiveStatus}
+                loading={loading}
+                icon={<MonitorOutlined />}
+                type="dashed"
+              >
+                Live Status
+              </Button>
+            </Tooltip>
           </Space>
         </Space>
       </Card>
@@ -420,6 +466,51 @@ const RolloutCard: React.FC<{
         visible={showDetails}
         onClose={() => setShowDetails(false)}
       />
+
+      <Modal
+        title={
+          <Space>
+            <MonitorOutlined />
+            <span>Live Status: {rollout.name}</span>
+          </Space>
+        }
+        open={liveStatusVisible}
+        onCancel={() => setLiveStatusVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setLiveStatusVisible(false)}>
+            Close
+          </Button>
+        ]}
+        width={1000}
+      >
+        {liveStatusLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '16px' }}>Loading live status...</div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: '16px' }}>
+              <Text type="secondary">
+                Live status from: kubectl argo rollouts get rollout {rollout.name} -n {rollout.namespace}
+              </Text>
+            </div>
+            <pre style={{ 
+              background: '#f5f5f5', 
+              padding: '16px', 
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
+              maxHeight: '500px',
+              overflow: 'auto'
+            }}>
+              {liveStatusData}
+            </pre>
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

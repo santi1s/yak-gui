@@ -6,12 +6,20 @@ export function AbortRollout(arg1, arg2) {
   return window['go']['main']['App']['AbortRollout'](arg1, arg2);
 }
 
+export function CheckArgoRolloutsExtension() {
+  return window['go']['main']['App']['CheckArgoRolloutsExtension']();
+}
+
 export function CheckGandiToken() {
   return window['go']['main']['App']['CheckGandiToken']();
 }
 
-export function CheckTFEDeprecatedVersions(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['CheckTFEDeprecatedVersions'](arg1, arg2, arg3, arg4);
+export function CheckTFEDeprecatedVersions(arg1, arg2) {
+  return window['go']['main']['App']['CheckTFEDeprecatedVersions'](arg1, arg2);
+}
+
+export function CreateCloudflareDNSRecord(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CreateCloudflareDNSRecord'](arg1, arg2, arg3);
 }
 
 export function CreateJWTClient(arg1) {
@@ -24,6 +32,10 @@ export function CreateJWTServer(arg1) {
 
 export function CreateSecret(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['CreateSecret'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function DeleteCloudflareDNSRecord(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeleteCloudflareDNSRecord'](arg1, arg2, arg3);
 }
 
 export function DeleteEnvironmentProfile(arg1) {
@@ -70,6 +82,30 @@ export function GetCertificateConfig() {
   return window['go']['main']['App']['GetCertificateConfig']();
 }
 
+export function GetCloudflareConfig() {
+  return window['go']['main']['App']['GetCloudflareConfig']();
+}
+
+export function GetCloudflareDNSRecords(arg1, arg2) {
+  return window['go']['main']['App']['GetCloudflareDNSRecords'](arg1, arg2);
+}
+
+export function GetCloudflareLoadBalancers(arg1, arg2) {
+  return window['go']['main']['App']['GetCloudflareLoadBalancers'](arg1, arg2);
+}
+
+export function GetCloudflarePools(arg1) {
+  return window['go']['main']['App']['GetCloudflarePools'](arg1);
+}
+
+export function GetCloudflareWAFRules(arg1, arg2) {
+  return window['go']['main']['App']['GetCloudflareWAFRules'](arg1, arg2);
+}
+
+export function GetCloudflareZones(arg1) {
+  return window['go']['main']['App']['GetCloudflareZones'](arg1);
+}
+
 export function GetCurrentAWSProfile() {
   return window['go']['main']['App']['GetCurrentAWSProfile']();
 }
@@ -88,6 +124,10 @@ export function GetGandiToken() {
 
 export function GetKubeconfig() {
   return window['go']['main']['App']['GetKubeconfig']();
+}
+
+export function GetRolloutLiveStatus(arg1, arg2) {
+  return window['go']['main']['App']['GetRolloutLiveStatus'](arg1, arg2);
 }
 
 export function GetRolloutStatus(arg1, arg2) {
@@ -130,6 +170,10 @@ export function GetTFEConfig() {
   return window['go']['main']['App']['GetTFEConfig']();
 }
 
+export function GetTFEOrganizations(arg1) {
+  return window['go']['main']['App']['GetTFEOrganizations'](arg1);
+}
+
 export function GetTFERunLogs(arg1, arg2) {
   return window['go']['main']['App']['GetTFERunLogs'](arg1, arg2);
 }
@@ -168,6 +212,10 @@ export function GetTFEWorkspaces(arg1) {
 
 export function GetTFEWorkspacesByTag(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetTFEWorkspacesByTag'](arg1, arg2, arg3);
+}
+
+export function GetYakVersion() {
+  return window['go']['main']['App']['GetYakVersion']();
 }
 
 export function Greet(arg1) {
@@ -230,6 +278,10 @@ export function RenewCertificate(arg1, arg2) {
   return window['go']['main']['App']['RenewCertificate'](arg1, arg2);
 }
 
+export function ResolveHostname(arg1) {
+  return window['go']['main']['App']['ResolveHostname'](arg1);
+}
+
 export function RestartRollout(arg1, arg2) {
   return window['go']['main']['App']['RestartRollout'](arg1, arg2);
 }
@@ -244,6 +296,10 @@ export function SendCertificateNotification(arg1, arg2, arg3) {
 
 export function SetAWSProfile(arg1) {
   return window['go']['main']['App']['SetAWSProfile'](arg1);
+}
+
+export function SetCloudflareConfig(arg1) {
+  return window['go']['main']['App']['SetCloudflareConfig'](arg1);
 }
 
 export function SetGandiToken(arg1) {

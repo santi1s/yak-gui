@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
 	
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -64,6 +66,22 @@ func (a *App) GetAppVersion() map[string]string {
 		"name":    "Yak GUI",
 		"description": "Comprehensive desktop GUI for yak CLI tool - manage ArgoCD, secrets, rollouts, certificates, and more",
 	}
+}
+
+// GetYakVersion returns the version of the yak CLI tool
+func (a *App) GetYakVersion() string {
+	cmd := exec.Command(findYakExecutable(), "version", "-s")
+	output, err := cmd.Output()
+	if err != nil {
+		return "Not available (yak CLI not found)"
+	}
+	
+	version := strings.TrimSpace(string(output))
+	if version == "" {
+		return "Unknown"
+	}
+	
+	return version
 }
 
 // MaximizeWindow maximizes the application window

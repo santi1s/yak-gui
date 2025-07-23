@@ -143,7 +143,6 @@ const TFE: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
   const [activeTab, setActiveTab] = useState<'workspaces' | 'runs' | 'versions'>('workspaces');
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
@@ -152,6 +151,7 @@ const TFE: React.FC = () => {
   const [negateTagFilter, setNegateTagFilter] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [configForm] = Form.useForm();
+  const [availableOrganizations, setAvailableOrganizations] = useState<string[]>(['doctolib']);
   const [terraformVersions, setTerraformVersions] = useState<any[]>([]);
   const [versionSummary, setVersionSummary] = useState<any>(null);
   const [runStatusFilter, setRunStatusFilter] = useState('');
@@ -170,6 +170,44 @@ const TFE: React.FC = () => {
   const [selectedRunForLogs, setSelectedRunForLogs] = useState<string>('');
   const [runLogsVisible, setRunLogsVisible] = useState(false);
   const [runLogsLoading, setRunLogsLoading] = useState(false);
+
+  // Calculate optimal dropdown width based on longest workspace name
+  const calculateDropdownWidth = () => {
+    if (workspaces.length === 0) return '400px';
+    const longestName = workspaces.reduce((max, ws) => 
+      ws.name.length > max ? ws.name.length : max, 0);
+    // Minimum 400px, add 10px per character over 40 characters
+    const calculatedWidth = Math.max(400, 400 + Math.max(0, longestName - 40) * 10);
+    return `${Math.min(calculatedWidth, 800)}px`; // Cap at 800px
+  };
+
+  // Load available organizations
+  const loadOrganizations = async (configToUse?: TFEConfig) => {
+    try {
+      const tfeConfig = configToUse || config;
+      if (window.go?.main?.App?.GetTFEOrganizations && tfeConfig?.endpoint) {
+        const organizations = await window.go.main.App.GetTFEOrganizations(tfeConfig);
+        setAvailableOrganizations(organizations || ['doctolib']);
+      } else {
+        console.warn('TFE config not available for loading organizations');
+        setAvailableOrganizations(['doctolib']);
+      }
+    } catch (error) {
+      console.error('Failed to load TFE organizations:', error);
+      setError(`Failed to load organizations: ${error}`);
+      setAvailableOrganizations(['doctolib']);
+    }
+  };
+
+  // Handle opening configuration modal
+  const handleConfigModalOpen = () => {
+    // Only try to load organizations if we already have config
+    if (config?.endpoint && config?.token) {
+      loadOrganizations();
+    }
+    setShowConfigModal(true);
+  };
+
 
   // Load workspaces
   const loadWorkspaces = async () => {
@@ -375,12 +413,18 @@ const TFE: React.FC = () => {
 
   // Enhanced run management functions
   const discardOldRuns = async (ageHours: number, discardPending: boolean = false) => {
+    if (!selectedWorkspace) {
+      setError('Please select a workspace first');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
       if (window.go?.main?.App?.DiscardTFERuns) {
+        // Note: This operates at organization level, not workspace level
         await window.go.main.App.DiscardTFERuns(config, ageHours, discardPending, false, false);
-        await loadRuns(); // Refresh runs after discarding
+        await loadRuns(selectedWorkspace); // Refresh runs after discarding
       } else {
         throw new Error('TFE discard runs backend not available');
       }
@@ -392,25 +436,19 @@ const TFE: React.FC = () => {
   };
 
   const bulkDiscardRuns = async () => {
-    if (selectedRuns.length === 0) return;
-    
-    setLoading(true);
-    setError(null);
-    try {
-      // Note: This would need a specific backend function for bulk run operations
-      // For now, we'll use the existing discard function
-      if (window.go?.main?.App?.DiscardTFERuns) {
-        await window.go.main.App.DiscardTFERuns(config, 0, false, false, false);
-        await loadRuns(); // Refresh runs after operation
-        setSelectedRuns([]); // Clear selection
-      } else {
-        throw new Error('TFE bulk discard runs backend not available');
-      }
-    } catch (error) {
-      setError(`Failed to bulk discard runs: ${error}`);
-    } finally {
-      setLoading(false);
+    if (selectedRuns.length === 0) {
+      setError('No runs selected for bulk discard');
+      return;
     }
+    
+    if (!selectedWorkspace) {
+      setError('Please select a workspace first');
+      return;
+    }
+    
+    // Note: The backend doesn't support bulk discard by specific run IDs
+    // This functionality is currently not supported by the yak CLI
+    setError('Bulk discard by selected runs is not supported. Use "Discard Old Runs" instead.');
   };
 
   // Filter runs based on status and date
@@ -608,7 +646,7 @@ const TFE: React.FC = () => {
     setError(null);
     try {
       if (window.go?.main?.App?.CheckTFEDeprecatedVersions) {
-        const result = await window.go.main.App.CheckTFEDeprecatedVersions(config, '', '', false);
+        const result = await window.go.main.App.CheckTFEDeprecatedVersions(config, false);
         // Handle the result - could show a modal or update the UI
         console.log('Deprecated versions check result:', result);
       } else {
@@ -748,27 +786,28 @@ const TFE: React.FC = () => {
   useEffect(() => {
     const initializeTFE = async () => {
       await loadTFEConfig();
-      // Auto-load workspaces and variable sets after config is loaded
+      // Auto-load workspaces, variable sets, and versions after config is loaded
       setTimeout(() => {
         loadWorkspaces();
         loadVariableSets();
+        // loadTerraformVersions(); // Disabled due to command not available in current yak CLI
       }, 200);
     };
     
     initializeTFE();
   }, []);
 
+  // Auto-refresh workspaces and runs every 30 seconds
   useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        loadWorkspaces();
-        if (selectedWorkspace) {
-          loadRuns();
-        }
-      }, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, selectedWorkspace]);
+    const interval = setInterval(() => {
+      loadWorkspaces();
+      if (selectedWorkspace) {
+        loadRuns(selectedWorkspace);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [selectedWorkspace]);
+
 
   // Filter workspaces when filters change (only name and environment available for workspace names)
   useEffect(() => {
@@ -944,12 +983,6 @@ const TFE: React.FC = () => {
                 >
                   Refresh
                 </Button>
-                <Switch
-                  checked={autoRefresh}
-                  onChange={setAutoRefresh}
-                  checkedChildren="Auto"
-                  unCheckedChildren="Manual"
-                />
               </Space>
             </Col>
             <Col>
@@ -1180,7 +1213,7 @@ const TFE: React.FC = () => {
                     setSelectedWorkspace(value);
                     loadRuns(value);
                   }}
-                  style={{ width: '400px' }}
+                  style={{ width: calculateDropdownWidth() }}
                   showSearch
                   filterOption={(input, option) =>
                     option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -1408,7 +1441,7 @@ const TFE: React.FC = () => {
                           loadWorkspaceVariables(value);
                         }
                       }}
-                      style={{ width: '400px' }}
+                      style={{ width: calculateDropdownWidth() }}
                       showSearch
                       filterOption={(input, option) =>
                         option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -1453,7 +1486,7 @@ const TFE: React.FC = () => {
                           loadVariableSetDetails(value);
                         }
                       }}
-                      style={{ width: '400px' }}
+                      style={{ width: calculateDropdownWidth() }}
                       showSearch
                       filterOption={(input, option) =>
                         option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -1626,7 +1659,7 @@ const TFE: React.FC = () => {
           {loading && <Spin size="small" style={{ marginLeft: '8px' }} />}
         </span>
       ),
-      disabled: loading || workspaces.length === 0,
+      disabled: true, // Disabled: yak tfe versions command not available in current CLI
       children: (
         <div>
           <Row justify="space-between" style={{ marginBottom: '16px' }}>
@@ -1732,7 +1765,7 @@ const TFE: React.FC = () => {
           <Space>
             <Button
               icon={<SettingOutlined />}
-              onClick={() => setShowConfigModal(true)}
+              onClick={handleConfigModalOpen}
             >
               Configure
             </Button>
@@ -1806,12 +1839,35 @@ const TFE: React.FC = () => {
           <Form.Item
             name="organization"
             label="Organization"
-            rules={[{ required: true, message: 'Please enter the organization name' }]}
+            rules={[{ required: true, message: 'Please select an organization' }]}
           >
-            <Input
-              placeholder="e.g., doctolib"
-              prefix={<DatabaseOutlined />}
-            />
+            <Select
+              placeholder="Select an organization"
+              showSearch
+              loading={loading}
+              onDropdownVisibleChange={async (visible) => {
+                if (visible) {
+                  const formValues = configForm.getFieldsValue();
+                  // Use form values if available, otherwise fall back to existing config
+                  const configToUse = {
+                    endpoint: formValues.endpoint || config?.endpoint,
+                    token: formValues.token || config?.token,
+                    organization: formValues.organization || config?.organization
+                  };
+                  
+                  if (configToUse.endpoint) {
+                    await loadOrganizations(configToUse as TFEConfig);
+                  }
+                }
+              }}
+            >
+              {availableOrganizations.map(org => (
+                <Option key={org} value={org}>
+                  <DatabaseOutlined style={{ marginRight: 8 }} />
+                  {org}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           
           <Form.Item

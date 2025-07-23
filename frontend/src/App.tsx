@@ -53,13 +53,14 @@ import {
   FileProtectOutlined,
   UnorderedListOutlined,
   AppstoreOutlined,
-  BarsOutlined
+  BarsOutlined,
 } from '@ant-design/icons';
 import Rollouts from './Rollouts';
 import Secrets from './Secrets';
 import Certificates from './Certificates';
 import TFE from './TFE';
 import ArgoCD from './ArgoCD';
+import Cloudflare from './Cloudflare';
 import FeatureFlagManager from './FeatureFlagManager';
 import { useFeatureFlags } from './featureFlags';
 
@@ -108,6 +109,7 @@ declare global {
           LoadEnvironmentProfile: (name: string) => Promise<void>;
           DeleteEnvironmentProfile: (name: string) => Promise<void>;
           GetAppVersion: () => Promise<Record<string, string>>;
+          GetYakVersion: () => Promise<string>;
           TestSimpleArray: () => Promise<string[]>;
           TestSimpleApps: () => Promise<ArgoApp[]>;
           LoginToArgoCD: (config: ArgoConfig) => Promise<void>;
@@ -119,6 +121,8 @@ declare global {
           AbortRollout: (config: any, rolloutName: string) => Promise<void>;
           RestartRollout: (config: any, rolloutName: string) => Promise<void>;
           SetRolloutImage: (config: any, rolloutName: string, image: string, container: string) => Promise<void>;
+          CheckArgoRolloutsExtension: () => Promise<void>;
+          GetRolloutLiveStatus: (config: any, rolloutName: string) => Promise<string>;
           // Secret functions
           GetSecrets: (config: any, path: string) => Promise<any[]>;
           GetSecretData: (config: any, path: string, version: number) => Promise<any>;
@@ -141,6 +145,7 @@ declare global {
           SendCertificateNotification: (certificateName: string, operationDate: string, operation: string) => Promise<any>;
           // TFE functions
           GetTFEConfig: () => Promise<any>;
+          GetTFEOrganizations: (config: any) => Promise<string[]>;
           SetTFEConfig: (config: any) => Promise<void>;
           GetTFEWorkspaces: (config: any) => Promise<any[]>;
           GetTFEWorkspacesByTag: (config: any, tag: string, not: boolean) => Promise<any[]>;
@@ -152,13 +157,24 @@ declare global {
           SetTFEWorkspaceVersion: (config: any, workspaceNames: string[], version: string) => Promise<void>;
           DiscardTFERuns: (config: any, ageHours: number, discardPending: boolean, dryRun: boolean, allWorkspaces: boolean) => Promise<void>;
           GetTFEVersions: (config: any) => Promise<any[]>;
-          CheckTFEDeprecatedVersions: (config: any, versionFile: string, teamsFile: string, sendEmail: boolean) => Promise<any>;
+          CheckTFEDeprecatedVersions: (config: any, sendEmail: boolean) => Promise<any>;
           // TFE Variable functions
           GetTFEWorkspaceVariables: (config: any, workspaceId: string, includeSets: boolean) => Promise<any[]>;
           GetTFEVariableSetVariables: (config: any, variableSetName: string) => Promise<any[]>;
           GetTFEVariableSets: (config: any) => Promise<any[]>;
           GetTFEWorkspaceDetails: (config: any, workspaceName: string) => Promise<any>;
           GetTFEVariableSetDetails: (config: any, variableSetName: string) => Promise<any>;
+          // Cloudflare functions
+          GetCloudflareConfig: () => Promise<any>;
+          SetCloudflareConfig: (config: any) => Promise<void>;
+          GetCloudflareZones: (config: any) => Promise<any[]>;
+          GetCloudflareDNSRecords: (config: any, zone: string) => Promise<any[]>;
+          CreateCloudflareDNSRecord: (config: any, zone: string, record: any) => Promise<void>;
+          DeleteCloudflareDNSRecord: (config: any, zone: string, recordId: string) => Promise<void>;
+          GetCloudflareLoadBalancers: (config: any, zone: string) => Promise<any[]>;
+          GetCloudflarePools: (config: any) => Promise<any[]>;
+          GetCloudflareWAFRules: (config: any, zone: string) => Promise<any[]>;
+          ResolveHostname: (hostname: string) => Promise<string>;
           // Window control functions
           MaximizeWindow: () => void;
           UnmaximizeWindow: () => void;
@@ -197,6 +213,7 @@ const EnvironmentConfig: React.FC<{
   
   // Version info state
   const [versionInfo, setVersionInfo] = useState<Record<string, string>>({});
+  const [yakVersion, setYakVersion] = useState<string>('');
 
   const loadEnvironmentVariables = async () => {
     try {
@@ -253,6 +270,10 @@ const EnvironmentConfig: React.FC<{
       if (window.go && window.go.main && window.go.main.App) {
         const version = await window.go.main.App.GetAppVersion();
         setVersionInfo(version);
+        
+        // Load yak CLI version
+        const yakVer = await window.go.main.App.GetYakVersion();
+        setYakVersion(yakVer);
       }
     } catch (error) {
       console.error('Failed to load version info:', error);
@@ -427,7 +448,13 @@ const EnvironmentConfig: React.FC<{
             <div style={{ textAlign: 'right' }}>
               <Text strong>{versionInfo.name || 'Yak GUI'}</Text>
               <br />
-              <Text type="secondary">v{versionInfo.version}</Text>
+              <Text type="secondary">GUI: v{versionInfo.version}</Text>
+              {yakVersion && (
+                <>
+                  <br />
+                  <Text type="secondary">CLI: {yakVersion}</Text>
+                </>
+              )}
             </div>
           )}
         </Col>
@@ -785,6 +812,20 @@ const App: React.FC = () => {
           </span>
         ),
         children: <TFE />,
+      });
+    }
+
+    if (featureFlags.showCloudflareTab) {
+      items.push({
+        key: 'cloudflare',
+        label: (
+          <span>
+            <CloudOutlined />
+            Cloudflare
+            <Tag color="blue" size="small" style={{ marginLeft: '8px' }}>NEW</Tag>
+          </span>
+        ),
+        children: <Cloudflare />,
       });
     }
     

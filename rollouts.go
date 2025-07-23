@@ -461,3 +461,48 @@ func getRolloutImages(spec map[string]interface{}) map[string]string {
 	
 	return images
 }
+
+// CheckArgoRolloutsExtension checks if the kubectl argo rollouts extension is installed
+func (a *App) CheckArgoRolloutsExtension() error {
+	cmd := exec.Command("kubectl", "argo", "rollouts", "version", "--short")
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "unknown command") || strings.Contains(err.Error(), "executable file not found") {
+			return fmt.Errorf("kubectl argo rollouts extension is not installed. Please install it using: kubectl krew install argo-rollouts")
+		}
+		return fmt.Errorf("failed to check argo rollouts extension: %v. Output: %s", err, string(output))
+	}
+	
+	return nil
+}
+
+// GetRolloutLiveStatus gets the live status of a rollout using kubectl argo rollouts
+func (a *App) GetRolloutLiveStatus(config KubernetesConfig, rolloutName string) (string, error) {
+	if rolloutName == "" {
+		return "", fmt.Errorf("rollout name is required")
+	}
+
+	// First check if the extension is installed
+	if err := a.CheckArgoRolloutsExtension(); err != nil {
+		return "", err
+	}
+
+	// Build kubectl argo rollouts command
+	args := []string{"argo", "rollouts", "get", "rollout", rolloutName, "--no-color"}
+	
+	// Add namespace if specified
+	if config.Namespace != "" {
+		args = append(args, "-n", config.Namespace)
+	}
+
+	// Execute kubectl argo rollouts get rollout
+	cmd := exec.Command("kubectl", args...)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get live rollout status for %s: %v. Output: %s", rolloutName, err, string(output))
+	}
+
+	return string(output), nil
+}

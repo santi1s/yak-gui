@@ -7,13 +7,7 @@ import (
 
 // findYakExecutable searches for yak executable in common paths
 func findYakExecutable() string {
-	// Check for local development version first (updated yak with --json support)
-	localYakPath := "/Users/sergiosantiago/projects/doctolib/yak_fix/yak"
-	if _, err := exec.LookPath(localYakPath); err == nil {
-		return localYakPath
-	}
-	
-	// Check PATH next
+	// Check PATH first
 	if _, err := exec.LookPath("yak"); err == nil {
 		return "yak"
 	}
