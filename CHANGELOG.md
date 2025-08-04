@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.2](https://github.com/santi1s/yak-gui/compare/v1.14.1...v1.14.2) (2025-08-04)
+
+
+### Bug Fixes
+
+* configure release-please commit types and changelog sections ([f40b363](https://github.com/santi1s/yak-gui/commit/f40b363e8d2055d0ed7a0d23940710723bf7867b))
+* configure release-please commit types and changelog sections ([32ac054](https://github.com/santi1s/yak-gui/commit/32ac05459792611f87596c014abe5a44820acf2e))
+
 ## [1.14.1](https://github.com/santi1s/yak-gui/compare/v1.14.0...v1.14.1) (2025-07-16)
 
 
